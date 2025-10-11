@@ -80,7 +80,7 @@ bashnpm install
 
 Create .env.local in the root directory:
 
-bashRIOT_API_KEY=RGAPI-your-key-here
+bashRIOT_API_KEY=
 
 # Day 2: AWS credentials
 AWS_ACCESS_KEY_ID=
@@ -218,10 +218,10 @@ Unique/Vibes (20%)
 
 
 👤 Author
-Built by [Your Name] for the Rift Rewind Hackathon.
+Built by Jose Angel Rodriguez for the Rift Rewind Hackathon.
 
-GitHub: @yourusername
-Devpost: [Your Devpost Profile]
+GitHub: @josr27
+Devpost: Nothing boo (gatoraids2)
 
 
 🙏 Acknowledgments
