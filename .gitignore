@@ -15,6 +15,8 @@
 /
 # api
 /src/app/api/test-api.mjs
+/src/app/api/test-bedrock.mjs
+/scripts/fetch-demo-accounts.mjs
 
 
 # next.js

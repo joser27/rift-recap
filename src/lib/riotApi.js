@@ -1,6 +1,4 @@
 // lib/riotApi.js
-const RIOT_API_KEY = process.env.RIOT_API_KEY;
-
 // Rate limiting helper
 import pLimit from 'p-limit';
 const limit = pLimit(20); // Max 20 concurrent requests
@@ -24,7 +22,7 @@ async function riotRequest(url, retries = 2) {
     try {
       const res = await fetch(url, {
         headers: {
-          'X-Riot-Token': RIOT_API_KEY
+          'X-Riot-Token': process.env.RIOT_API_KEY
         }
       });
 

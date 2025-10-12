@@ -1,0 +1,26 @@
+{
+  "profile": {
+    "account": {
+      "puuid": "PM4wDmyH56xDXMpwSC-VOekUW3s_8-aIlS4haAO0mPToDw1aOgTX1S2SdZT_FW780-ZDgO1xAMflaw",
+      "gameName": "lóltyler1",
+      "tagLine": "NA1"
+    },
+    "summoner": {
+      "puuid": "PM4wDmyH56xDXMpwSC-VOekUW3s_8-aIlS4haAO0mPToDw1aOgTX1S2SdZT_FW780-ZDgO1xAMflaw",
+      "profileIconId": 3156,
+      "revisionDate": 1518469756000,
+      "summonerLevel": 56
+    },
+    "matches": []
+  },
+  "insights": {
+    "title": "Champion Personality",
+    "nickname": "The Blank Slate Battler",
+    "summary": "Currently a mysterious summoner with untapped potential, waiting to burst onto the Rift with their unique playstyle. As a 'FILL' player, you're showing flexibility but haven't yet carved out your competitive identity.",
+    "strength": "Versatility in role selection, demonstrated by choosing 'FILL' - showing adaptability and team-first mentality that many high-level players would respect.",
+    "weakness": "Limited match history and statistical data suggest a need to focus on consistent gameplay. Recommend playing 10-15 ranked matches in a specific role to establish a more defined champion pool and improve mechanical skills.",
+    "funFact": "With zero first bloods and zero penta kills, you're essentially a League of Legends tabula rasa - all potential, zero pressure! Your journey is just beginning, and that's exciting.",
+    "personalAdvice": "Time to turn that blank canvas into a masterpiece of League domination! Pick 2-3 champions you genuinely enjoy, learn their mechanics inside and out, and start building your legend."
+  },
+  "fetchedAt": "2025-10-12T04:21:45.590Z"
+}
