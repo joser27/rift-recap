@@ -54399,11 +54399,12 @@
   },
   "insights": {
     "title": "Champion Personality",
-    "nickname": "The Volatile Spell Slinger",
-    "summary": "A mid-lane maverick with explosive potential but inconsistent execution. Your champion pool suggests you love high-impact, mechanically demanding champions that can turn fights on their head.",
-    "strength": "First Blood Assassin - You've secured 2 first bloods in just 20 matches, showing a killer instinct and early game aggression that catches opponents off guard.",
-    "weakness": "Consistency is key! Your 40% win rate indicates you're struggling to translate early advantages into game wins. Focus on map awareness, objective control, and maintaining momentum after winning lane.",
-    "funFact": "Your average game duration of 19 minutes suggests you're either dominating hard or getting dominated - there's no middle ground with you! Embrace the chaos, but learn to channel it strategically."
+    "nickname": "The Volatile Veteran",
+    "summary": "Bosey plays like a rollercoaster of potential - quick to engage but struggling to close out games. With a diverse champion pool spanning burst mages and bruisers, they're clearly experimenting and searching for their competitive groove.",
+    "strength": "First Blood King! With 2 first bloods in just 20 matches, Bosey has a killer early game instinct and isn't afraid to make aggressive plays (kill participation of 17.6 assists shows they're team-oriented)",
+    "weakness": "Consistency is key - a 40% win rate suggests difficulty translating early advantages into match wins. Focus on wave management, objective control, and maintaining momentum after strong early game starts",
+    "funFact": "Average game duration of just 19 minutes indicates they're either dominating quickly or surrendering early - no middle ground! Time to find that sweet strategic balance, champ 🎲",
+    "coachNotes": "Potential to climb if they tighten up mid-game decision making and champion mastery"
   },
-  "fetchedAt": "2025-10-12T04:22:03.667Z"
+  "fetchedAt": "2025-10-13T02:42:22.354Z"
 }
