@@ -4,12 +4,12 @@ import { buildDialoguePrompt, callClaude } from '@/lib/awsAi';
 
 export async function POST(request) {
   try {
-    const { kind, profile, question, lastAnswer } = await request.json();
+    const { kind, profile, question, lastAnswer, match } = await request.json();
     if (!kind) {
       return NextResponse.json({ error: 'kind is required' }, { status: 400 });
     }
 
-    const extra = { question, lastAnswer };
+    const extra = { question, lastAnswer, match };
     const { system, prompt } = buildDialoguePrompt(kind, profile, extra);
     const text = await callClaude(prompt, { system, temperature: 0.6, maxTokens: 600 });
     const safe = typeof text === 'string' ? text : (text?.toString?.() ?? '');

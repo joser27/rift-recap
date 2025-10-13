@@ -42,7 +42,7 @@
 .dialogueContainer {
   position: absolute;
   right: 46px;
-  bottom: calc(var(--fh, 32px) * var(--scale, 3) + 128px);
+  bottom: calc(var(--fh, 32px) * var(--scale, 3) + 120px);
   pointer-events: auto;
 }
 

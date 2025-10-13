@@ -83,6 +83,24 @@ export async function callClaude(prompt, options = {}) {
   }
 }
 
+function formatMatchContext(match, playerPuuid) {
+  try {
+    const p = match?.info?.participants?.find(x => x.puuid === playerPuuid);
+    if (!p) return null;
+    const champ = p.championName;
+    const k = p.kills, d = p.deaths, a = p.assists;
+    const role = p.teamPosition || 'FILL';
+    const win = p.win ? 'Victory' : 'Defeat';
+    const durS = match?.info?.gameDuration || 0;
+    const mins = Math.floor(durS / 60);
+    const secs = durS % 60;
+    const kdaRatio = ((k + a) / Math.max(d, 1)).toFixed(2);
+    return `Match: ${champ} ${k}/${d}/${a} (KDA ${kdaRatio}), Role: ${role}, Result: ${win}, Duration: ${mins}m ${secs}s`;
+  } catch {
+    return null;
+  }
+}
+
 /**
  * Build prompts for the dialogue assistant
  */
@@ -103,6 +121,12 @@ export function buildDialoguePrompt(kind, profileData, extra) {
     compare: `Briefly compare them to similar players (max 3–4 sentences). Keep it positive and actionable. No lists; conversational. No asterisks. Do not cite specific items unless provided as current.\n\n${preface}`,
     surprise: `Share an interesting pattern or fun observation (max 3–4 sentences). Keep it playful, no lists, no asterisks.\n\n${preface}`,
     custom: (extra?.question ? `Answer the user's question about their gameplay (max 3–4 sentences). Keep it specific to their data. No lists; conversational. No asterisks. If the question asks for item/build advice and no current items are provided, give general guidance and direct them to u.gg/op.gg for exact builds.\n\nQuestion: ${extra.question}\n\n${preface}` : `Answer the user's question briefly (max 3–4 sentences).\n\n${preface}`),
+    match: (() => {
+      const ctx = extra?.match && profileData?.account?.puuid
+        ? formatMatchContext(extra.match, profileData.account.puuid)
+        : null;
+      return `${ctx ? ctx + '\n\n' : ''}Analyze this specific match for the player above (max 3–4 sentences). Explain what went right or wrong and give one key takeaway to try next time. Be friendly and conversational. No lists, no asterisks.`;
+    })(),
     followups: (extra?.lastAnswer ? `Based on the assistant's last reply and the player's data, suggest three short follow-up questions the user might ask next. Keep them distinct and engaging. Output ONLY the three questions separated by the pipe character (|). No extra text.\n\nLast reply: ${extra.lastAnswer}\n\n${preface}` : `Suggest three short follow-up questions separated by | about the player's data. No extra text.\n\n${preface}`),
   };
 

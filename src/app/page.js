@@ -2,7 +2,7 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { MessageCircle, TrendingUp, UsersRound, Sparkles, Bot } from 'lucide-react';
+import { MessageCircle, TrendingUp, UsersRound, Sparkles, Bot, Zap, PawPrint } from 'lucide-react';
 import PoroAssistant from './components/PoroAssistant';
 import DialogueBox from './components/DialogueBox';
 
@@ -162,7 +162,7 @@ export default function Home() {
         const fdata = await f.json();
         if (f.ok && Array.isArray(fdata.followups) && fdata.followups.length) {
           const mapped = fdata.followups.slice(0, 3).map((q, i) => ({ key: `followup-${i}`, label: q }));
-          setOptions([...mapped, { key: 'reset', label: '↩️ Back to main options' }]);
+          setOptions([...mapped, { key: 'reset', label: 'Back to main options' }]);
         } else {
           setOptions(baseOptions);
         }
@@ -230,7 +230,72 @@ export default function Home() {
         const fdata = await f.json();
         if (f.ok && Array.isArray(fdata.followups) && fdata.followups.length) {
           const mapped = fdata.followups.slice(0, 3).map((q, i) => ({ key: `followup-${i}`, label: q }));
-          setOptions([...mapped, { key: 'reset', label: '↩️ Back to main options' }]);
+          setOptions([...mapped, { key: 'reset', label: 'Back to main options' }]);
+        } else {
+          setOptions(baseOptions);
+        }
+      } catch {
+        setOptions(baseOptions);
+      }
+      const messageLength = (data.message || '').length;
+      const typingMsPerChar = 18;
+      const estimated = Math.min(8000, Math.max(1200, messageLength * typingMsPerChar + 600));
+      revertIdleTimerRef.current = setTimeout(() => {
+        setPoroState('idle');
+      }, estimated);
+    } catch (e) {
+      setPoroState('idle');
+      setDialogue('Hmm... something went wrong. Want to try again?');
+      setOptions(baseOptions);
+    } finally {
+      setDialogueLoading(false);
+      if (loadingIntervalRef.current) {
+        clearInterval(loadingIntervalRef.current);
+        loadingIntervalRef.current = null;
+      }
+      setLoadingPhase(null);
+    }
+  };
+
+  const handleAskMatch = async (match) => {
+    if (!profile) return;
+    setDialogueVisible(true);
+    setPoroState('thinking');
+    setDialogueLoading(true);
+    const phases = ["Hmm, let me think...", "Analyzing your games...", "Almost there!"];
+    let idx = 0;
+    setLoadingPhase(phases[idx]);
+    loadingIntervalRef.current = setInterval(() => {
+      idx = (idx + 1) % phases.length;
+      setLoadingPhase(phases[idx]);
+    }, 1600);
+    if (revertIdleTimerRef.current) {
+      clearTimeout(revertIdleTimerRef.current);
+      revertIdleTimerRef.current = null;
+    }
+    try {
+      const res = await fetch('/api/ai', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ kind: 'match', profile, match })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed');
+      setPoroState('ready');
+      setDialogue(data.message);
+      setTimeout(() => setPoroState('talking'), 400);
+      lastAnswerRef.current = data.message || '';
+      // optional followups for match context
+      try {
+        const f = await fetch('/api/ai', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ kind: 'followups', profile, lastAnswer: lastAnswerRef.current })
+        });
+        const fdata = await f.json();
+        if (f.ok && Array.isArray(fdata.followups) && fdata.followups.length) {
+          const mapped = fdata.followups.slice(0, 3).map((q, i) => ({ key: `followup-${i}`, label: q }));
+          setOptions([...mapped, { key: 'reset', label: 'Back to main options' }]);
         } else {
           setOptions(baseOptions);
         }
@@ -308,21 +373,38 @@ export default function Home() {
         {/* Demo Account Quick Access */}
         {!profile && !loading && (
           <div className="bg-gray-800/50 rounded-lg p-4 mb-6 border border-gray-700">
-            <p className="text-gray-400 text-sm mb-3 text-center">
-              ⚡ Try a demo account for instant results:
+            <p className="text-gray-400 text-sm mb-3 text-center flex items-center justify-center gap-2">
+              <Zap size={16} className="text-blue-400" />
+              Try a demo account for instant results:
             </p>
             <div className="flex gap-2 justify-center flex-wrap">
               <button
                 onClick={() => loadDemoAccount('Bosey', 'NA1')}
                 className="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg text-sm font-semibold transition flex items-center gap-2"
               >
-                <span>⚡</span>
+                <Zap size={16} />
                 Bosey#NA1
+                <span className="text-xs text-blue-300">(instant)</span>
+              </button>
+              <button
+                onClick={() => loadDemoAccount('SoloRenektonOnly', 'NA1')}
+                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg text-sm font-semibold transition flex items-center gap-2"
+              >
+                <Zap size={16} />
+                SoloRenektonOnly#NA1
+                <span className="text-xs text-blue-300">(instant)</span>
+              </button>
+              <button
+                onClick={() => loadDemoAccount('T1 ok good yes', 'NA1')}
+                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg text-sm font-semibold transition flex items-center gap-2"
+              >
+                <Zap size={16} />
+                T1 ok good yes#NA1
                 <span className="text-xs text-blue-300">(instant)</span>
               </button>
             </div>
             <p className="text-gray-500 text-xs mt-2 text-center">
-              Or search any summoner above for live analysis (~15 seconds)
+              Or search any summoner above for live analysis
             </p>
           </div>
         )}
@@ -422,6 +504,17 @@ export default function Home() {
                   );
                   
                   const kdaRatio = ((participant.kills + participant.assists) / Math.max(participant.deaths, 1)).toFixed(2);
+                  const teamKills = match.info.participants
+                    .filter(p => p.teamId === participant.teamId)
+                    .reduce((sum, p) => sum + p.kills, 0);
+                  const killParticipation = (((participant.kills + participant.assists) / Math.max(teamKills, 1)) * 100).toFixed(0);
+                  const cs = (participant.totalMinionsKilled || 0) + (participant.neutralMinionsKilled || 0);
+                  const minutes = Math.max(1, Math.floor(match.info.gameDuration / 60));
+                  const csPerMin = (cs / minutes).toFixed(1);
+                  const visionScore = participant.visionScore;
+                  const damage = participant.totalDamageDealtToChampions;
+                  const gold = participant.goldEarned;
+                  const role = participant.teamPosition || participant.role || 'FILL';
                   
                   return (
                     <div
@@ -441,6 +534,9 @@ export default function Home() {
                           <span className="text-sm text-gray-400">
                             KDA: {kdaRatio}
                           </span>
+                          <span className="text-sm text-gray-400">
+                            Role: {role}
+                          </span>
                         </div>
                         <div className="text-right">
                           <span className={`font-semibold ${participant.win ? 'text-blue-400' : 'text-red-400'}`}>
@@ -449,7 +545,87 @@ export default function Home() {
                           <p className="text-sm text-gray-400">
                             {Math.floor(match.info.gameDuration / 60)}m {match.info.gameDuration % 60}s
                           </p>
+                          <button
+                            onClick={() => handleAskMatch(match)}
+                            className="mt-2 inline-flex items-center gap-2 text-blue-300 hover:text-blue-200 underline-offset-2 hover:underline"
+                          >
+                            <PawPrint size={16} />
+                            Ask Poro about this game
+                          </button>
                         </div>
+                      </div>
+                      <div className="mt-3 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3 text-sm text-gray-300">
+                        <div className="bg-black/20 rounded px-2 py-1 border border-white/5">
+                          <span className="text-gray-400">CS:</span> {cs} <span className="text-gray-400">({csPerMin}/m)</span>
+                        </div>
+                        <div className="bg-black/20 rounded px-2 py-1 border border-white/5">
+                          <span className="text-gray-400">KP:</span> {killParticipation}%
+                        </div>
+                        <div className="bg-black/20 rounded px-2 py-1 border border-white/5">
+                          <span className="text-gray-400">Dmg:</span> {damage?.toLocaleString?.() || damage}
+                        </div>
+                        <div className="bg-black/20 rounded px-2 py-1 border border-white/5">
+                          <span className="text-gray-400">Vision:</span> {visionScore}
+                        </div>
+                        <div className="bg-black/20 rounded px-2 py-1 border border-white/5">
+                          <span className="text-gray-400">Gold:</span> {gold?.toLocaleString?.() || gold}
+                        </div>
+                      </div>
+
+                      {/* Players and raw data expanders */}
+                      <div className="mt-3 space-y-2">
+                        <details className="bg-black/10 rounded border border-white/5">
+                          <summary className="cursor-pointer px-3 py-2 text-sm text-gray-200 hover:text-white">View all players</summary>
+                          <div className="px-3 pb-3">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                              {([100, 200]).map((teamId) => {
+                                const team = match.info.participants.filter(p => p.teamId === teamId);
+                                return (
+                                  <div key={teamId} className="bg-black/20 rounded p-3 border border-white/5">
+                                    <div className="font-semibold mb-3 text-gray-300 flex items-center gap-2">
+                                      <span className={`inline-block w-2 h-2 rounded-full ${teamId === 100 ? 'bg-blue-400' : 'bg-red-400'}`}></span>
+                                      Team {teamId === 100 ? 'Blue' : 'Red'}
+                                    </div>
+                                    <div className="grid grid-cols-6 gap-2 text-xs uppercase tracking-wide text-gray-400 px-2 pb-1">
+                                      <div className="col-span-2">Player (Champ)</div>
+                                      <div className="text-center">K/D/A</div>
+                                      <div className="text-center">CS</div>
+                                      <div className="text-right">Gold</div>
+                                      <div className="text-right">Dmg</div>
+                                    </div>
+                                    <div className="divide-y divide-white/5 rounded overflow-hidden">
+                                      {team.map((p) => {
+                                        const csP = (p.totalMinionsKilled || 0) + (p.neutralMinionsKilled || 0);
+                                        return (
+                                          <div key={p.puuid} className="grid grid-cols-6 gap-2 text-sm text-gray-200 px-2 py-1 bg-white/5/0 hover:bg-white/5/10">
+                                            <div className="col-span-2 flex items-center gap-2 min-w-0">
+                                              <span className="font-semibold truncate" title={p.summonerName || p.riotIdGameName || 'Unknown'}>
+                                                {p.summonerName || p.riotIdGameName || 'Unknown'}
+                                              </span>
+                                              <span className="text-gray-400 shrink-0">({p.championName})</span>
+                                            </div>
+                                            <div className="text-center text-gray-300">
+                                              {p.kills}/{p.deaths}/{p.assists}
+                                            </div>
+                                            <div className="text-center text-gray-400">
+                                              {csP}
+                                            </div>
+                                            <div className="text-right text-gray-400">
+                                              {p.goldEarned?.toLocaleString?.() || p.goldEarned}
+                                            </div>
+                                            <div className="text-right text-gray-400">
+                                              {p.totalDamageDealtToChampions?.toLocaleString?.() || p.totalDamageDealtToChampions}
+                                            </div>
+                                          </div>
+                                        );
+                                      })}
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        </details>
                       </div>
                     </div>
                   );

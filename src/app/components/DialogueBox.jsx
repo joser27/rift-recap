@@ -23,12 +23,12 @@ export default function DialogueBox({
   useEffect(() => {
     const safeText = typeof text === 'string' ? text : (text?.toString?.() ?? '');
     setDisplayed('');
-    setDone(!typing);
+    setDone(!typing ? false : false);
     indexRef.current = 0;
     if (!typing) {
-      setDisplayed(safeText);
-      setDone(true);
-      return;
+      // While not typing (e.g., loading), do not render the full text yet
+      // Keep displayed empty and mark not done so options remain disabled
+      return () => timerRef.current && clearTimeout(timerRef.current);
     }
 
     const run = () => {
