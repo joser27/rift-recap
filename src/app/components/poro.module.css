@@ -1,0 +1,49 @@
+.poroWrapper {
+  position: fixed;
+  right: 24px;
+  bottom: 24px;
+  z-index: 50;
+  pointer-events: none;
+}
+
+.poroSprite {
+  width: calc(var(--fw, 32px) * var(--scale, 3));
+  height: calc(var(--fh, 32px) * var(--scale, 3));
+  background-image: url('/poroAnimations.png');
+  background-repeat: no-repeat;
+  /* Scale background so each frame fits the element exactly */
+  background-size: calc((var(--columns, 4) * var(--fw, 32px)) * var(--scale, 3)) calc((var(--rows, 5) * var(--fh, 32px)) * var(--scale, 3));
+  background-position-x: 0;
+  background-position-y: calc((var(--row, 1) - 1) * -1 * var(--fh, 32px) * var(--scale, 3));
+  image-rendering: pixelated;
+  animation: poro-play var(--duration, 1s) steps(var(--frames, 2)) infinite;
+  filter: drop-shadow(0 6px 12px rgba(0,0,0,0.35));
+}
+
+.bounceIn {
+  animation: poro-bounce-in 600ms ease-out;
+}
+
+@keyframes poro-play {
+  from {
+    background-position-x: 0;
+  }
+  to {
+    background-position-x: calc(var(--frames, 2) * -1 * var(--fw, 32px) * var(--scale, 3));
+  }
+}
+
+@keyframes poro-bounce-in {
+  0% { transform: translateY(40px) scale(0.9); opacity: 0; }
+  60% { transform: translateY(-10px) scale(1.02); opacity: 1; }
+  100% { transform: translateY(0) scale(1); opacity: 1; }
+}
+
+.dialogueContainer {
+  position: absolute;
+  right: 46px;
+  bottom: calc(var(--fh, 32px) * var(--scale, 3) + 128px);
+  pointer-events: auto;
+}
+
+

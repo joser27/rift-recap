@@ -12,6 +12,20 @@ const CLAUDE_HAIKU = 'us.anthropic.claude-3-5-haiku-20241022-v1:0';
 const CLAUDE_SONNET = 'us.anthropic.claude-3-5-sonnet-20241022-v2:0';
 const CLAUDE_3_HAIKU = 'anthropic.claude-3-haiku-20240307-v1:0';
 
+// Current live-game grounding to reduce outdated recommendations
+const PATCH_CONTEXT = `Current date: Oct 12, 2025
+Current League of Legends patch: 25.19
+
+Important, factual constraints:
+- Mythic items were removed in Season 2024. Do not refer to mythic passives.
+- Prowler's Claw was removed. Never recommend it.
+- If you are not 100% certain an item/rune exists this patch, do not recommend it.
+- Prefer playstyle/macro guidance when uncertain, or direct the user to up-to-date sources (u.gg / op.gg).
+
+Response policy for builds/items:
+- If no explicit current items are provided in context, keep advice general (e.g., lethality vs survivability, spike timings) and suggest checking u.gg/op.gg for exact builds.
+- Never fabricate or guess specific items.`;
+
 /**
  * Call Claude via AWS Bedrock
  */
@@ -67,6 +81,32 @@ export async function callClaude(prompt, options = {}) {
     
     throw error;
   }
+}
+
+/**
+ * Build prompts for the dialogue assistant
+ */
+export function buildDialoguePrompt(kind, profileData, extra) {
+  const baseSystem = 'You are a friendly Poro companion from League of Legends. Speak warmly, concisely, and naturally. Do not use roleplay actions or stage directions. Do not use asterisks. Avoid numbered or bulleted lists. Keep responses short and conversational.\n\nAdhere to the CURRENT PATCH CONTEXT strictly:\n' + PATCH_CONTEXT;
+
+  const { account, summoner, matches } = profileData || {};
+  const playerLine = account && summoner
+    ? `${account.gameName}#${account.tagLine} (Level ${summoner.summonerLevel})`
+    : 'Unknown Player';
+
+  const preface = `Player: ${playerLine}\nMatches Available: ${matches?.length || 0}`;
+
+  const prompts = {
+    initial: `Give a warm, enthusiastic greeting (max 2–3 sentences). Be punchy and upbeat. Include their general playstyle personality. No asterisks, no roleplay actions, no lists.\n\n${preface}`,
+    more: `Explain their playstyle in a friendly tone (max 3–4 sentences). Focus on patterns in champions, roles, and combat style. Keep it conversational, no lists, no asterisks. Avoid specific item/rune recommendations unless explicitly provided as current.\n\n${preface}`,
+    improve: `Offer constructive, encouraging tips (max 3–4 sentences). Keep it practical and positive. No lists; flow naturally. No asterisks. Avoid specific build/item calls unless explicitly provided as current.\n\n${preface}`,
+    compare: `Briefly compare them to similar players (max 3–4 sentences). Keep it positive and actionable. No lists; conversational. No asterisks. Do not cite specific items unless provided as current.\n\n${preface}`,
+    surprise: `Share an interesting pattern or fun observation (max 3–4 sentences). Keep it playful, no lists, no asterisks.\n\n${preface}`,
+    custom: (extra?.question ? `Answer the user's question about their gameplay (max 3–4 sentences). Keep it specific to their data. No lists; conversational. No asterisks. If the question asks for item/build advice and no current items are provided, give general guidance and direct them to u.gg/op.gg for exact builds.\n\nQuestion: ${extra.question}\n\n${preface}` : `Answer the user's question briefly (max 3–4 sentences).\n\n${preface}`),
+    followups: (extra?.lastAnswer ? `Based on the assistant's last reply and the player's data, suggest three short follow-up questions the user might ask next. Keep them distinct and engaging. Output ONLY the three questions separated by the pipe character (|). No extra text.\n\nLast reply: ${extra.lastAnswer}\n\n${preface}` : `Suggest three short follow-up questions separated by | about the player's data. No extra text.\n\n${preface}`),
+  };
+
+  return { system: baseSystem, prompt: prompts[kind] || prompts.initial };
 }
 
 /**

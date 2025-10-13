@@ -1,7 +1,10 @@
 // src/app/page.js
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { MessageCircle, TrendingUp, UsersRound, Sparkles, Bot } from 'lucide-react';
+import PoroAssistant from './components/PoroAssistant';
+import DialogueBox from './components/DialogueBox';
 
 // Helper function to check for pre-loaded demo data
 async function checkDemoAccount(gameName, tagLine) {
@@ -30,6 +33,21 @@ export default function Home() {
   const [error, setError] = useState(null);
   const [insightsLoading, setInsightsLoading] = useState(false);
   const [isDemo, setIsDemo] = useState(false);
+  const [poroState, setPoroState] = useState('idle'); // idle | thinking | ready | talking | laughing
+  const [dialogue, setDialogue] = useState("Hi! I'm Poro—search a Summoner name above and I'll fetch insights.");
+  const [dialogueVisible, setDialogueVisible] = useState(true);
+  const [dialogueLoading, setDialogueLoading] = useState(false);
+  const [loadingPhase, setLoadingPhase] = useState(null);
+  const loadingIntervalRef = useRef(null);
+  const revertIdleTimerRef = useRef(null);
+  const baseOptions = useMemo(() => ([
+    { key: 'more', label: 'Tell me more about my playstyle', icon: <MessageCircle size={40} /> },
+    { key: 'improve', label: 'What should I improve?', icon: <TrendingUp size={40} /> },
+    { key: 'compare', label: 'How do I compare to others?', icon: <UsersRound size={40} /> },
+    { key: 'surprise', label: 'Surprise me with something interesting!', icon: <Sparkles size={40} /> },
+  ]), []);
+  const [options, setOptions] = useState(baseOptions);
+  const lastAnswerRef = useRef('');
 
   const handleSearch = async (e) => {
     e.preventDefault();
@@ -38,6 +56,11 @@ export default function Home() {
     setProfile(null);
     setInsights(null);
     setIsDemo(false);
+    setDialogue('');
+    setDialogueVisible(false);
+    setPoroState('thinking');
+    setOptions(baseOptions);
+    lastAnswerRef.current = '';
 
     try {
       // Check if this is a demo account first
@@ -48,6 +71,12 @@ export default function Home() {
         setProfile(demoData.profile);
         setInsights(demoData.insights);
         setIsDemo(true);
+        // Phase 2: deliver initial insight
+        setDialogue("I've got a quick insight ready!");
+        setDialogueVisible(true);
+        setPoroState('ready');
+        // After a moment, start talking
+        setTimeout(() => setPoroState('talking'), 800);
         setLoading(false);
         return;
       }
@@ -63,27 +92,171 @@ export default function Home() {
 
       setProfile(data.data);
 
-      // Generate insights
-      setInsightsLoading(true);
-      const insightsRes = await fetch('/api/insights', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data.data)
-      });
-
-      const insightsData = await insightsRes.json();
-      
-      if (insightsRes.ok) {
-        setInsights(insightsData.insights);
-      }
+      // No prefetching AI to save costs; just show conversational prompt
+      setDialogue("I took a peek at your recent games—want a quick overview?");
+      setDialogueVisible(true);
+      setPoroState('ready');
+      setTimeout(() => setPoroState('talking'), 800);
 
     } catch (err) {
       setError(err.message);
+      setPoroState('idle');
     } finally {
       setLoading(false);
       setInsightsLoading(false);
     }
   };
+  const handleDialogueOption = async (key) => {
+    if (!profile) return;
+    if (key === 'reset') {
+      setOptions(baseOptions);
+      setDialogue('Back to the main options. What sounds good?');
+      setDialogueVisible(true);
+      setPoroState('talking');
+      return;
+    }
+    setDialogueVisible(true);
+    setPoroState('thinking');
+    setDialogueLoading(true);
+    // Start cycling loading phases
+    const phases = ["Hmm, let me think...", "Analyzing your games...", "Almost there!"];
+    let idx = 0;
+    setLoadingPhase(phases[idx]);
+    loadingIntervalRef.current = setInterval(() => {
+      idx = (idx + 1) % phases.length;
+      setLoadingPhase(phases[idx]);
+    }, 1600);
+    // Clear any previous revert timer
+    if (revertIdleTimerRef.current) {
+      clearTimeout(revertIdleTimerRef.current);
+      revertIdleTimerRef.current = null;
+    }
+    try {
+      // Route followup keys to custom questions
+      let body;
+      if (key.startsWith('followup-')) {
+        const follow = options.find(o => o.key === key);
+        body = { kind: 'custom', profile, question: follow?.label };
+      } else {
+        body = { kind: key, profile };
+      }
+      const res = await fetch('/api/ai', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed');
+
+      setPoroState('ready');
+      setDialogue(data.message);
+      setTimeout(() => setPoroState('talking'), 400);
+      lastAnswerRef.current = data.message || '';
+      // Fetch dynamic followups and replace options
+      try {
+        const f = await fetch('/api/ai', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ kind: 'followups', profile, lastAnswer: lastAnswerRef.current })
+        });
+        const fdata = await f.json();
+        if (f.ok && Array.isArray(fdata.followups) && fdata.followups.length) {
+          const mapped = fdata.followups.slice(0, 3).map((q, i) => ({ key: `followup-${i}`, label: q }));
+          setOptions([...mapped, { key: 'reset', label: '↩️ Back to main options' }]);
+        } else {
+          setOptions(baseOptions);
+        }
+      } catch {
+        setOptions(baseOptions);
+      }
+      // Estimate typewriter duration to return to idle after speaking
+      const messageLength = (data.message || '').length;
+      const typingMsPerChar = 18; // keep in sync with DialogueBox default
+      const estimated = Math.min(8000, Math.max(1200, messageLength * typingMsPerChar + 600));
+      revertIdleTimerRef.current = setTimeout(() => {
+        setPoroState('idle');
+      }, estimated);
+    } catch (e) {
+      setPoroState('idle');
+      setDialogue('Hmm... something went wrong. Want to try again?');
+      setOptions(baseOptions);
+    } finally {
+      setDialogueLoading(false);
+      if (loadingIntervalRef.current) {
+        clearInterval(loadingIntervalRef.current);
+        loadingIntervalRef.current = null;
+      }
+      setLoadingPhase(null);
+    }
+  };
+
+  const handleFreeSubmit = async (question) => {
+    if (!profile) return;
+    setDialogueVisible(true);
+    setPoroState('thinking');
+    setDialogueLoading(true);
+    // Start cycling loading phases
+    const phases = ["Hmm, let me think...", "Analyzing your games...", "Almost there!"];
+    let idx = 0;
+    setLoadingPhase(phases[idx]);
+    loadingIntervalRef.current = setInterval(() => {
+      idx = (idx + 1) % phases.length;
+      setLoadingPhase(phases[idx]);
+    }, 1600);
+    if (revertIdleTimerRef.current) {
+      clearTimeout(revertIdleTimerRef.current);
+      revertIdleTimerRef.current = null;
+    }
+    try {
+      const res = await fetch('/api/ai', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ kind: 'custom', profile, question })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed');
+
+      setPoroState('ready');
+      setDialogue(data.message);
+      setTimeout(() => setPoroState('talking'), 400);
+      lastAnswerRef.current = data.message || '';
+      // dynamic followups
+      try {
+        const f = await fetch('/api/ai', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ kind: 'followups', profile, lastAnswer: lastAnswerRef.current })
+        });
+        const fdata = await f.json();
+        if (f.ok && Array.isArray(fdata.followups) && fdata.followups.length) {
+          const mapped = fdata.followups.slice(0, 3).map((q, i) => ({ key: `followup-${i}`, label: q }));
+          setOptions([...mapped, { key: 'reset', label: '↩️ Back to main options' }]);
+        } else {
+          setOptions(baseOptions);
+        }
+      } catch {
+        setOptions(baseOptions);
+      }
+      const messageLength = (data.message || '').length;
+      const typingMsPerChar = 18;
+      const estimated = Math.min(8000, Math.max(1200, messageLength * typingMsPerChar + 600));
+      revertIdleTimerRef.current = setTimeout(() => {
+        setPoroState('idle');
+      }, estimated);
+    } catch (e) {
+      setPoroState('idle');
+      setDialogue('Hmm... something went wrong. Want to try again?');
+      setOptions(baseOptions);
+    } finally {
+      setDialogueLoading(false);
+      if (loadingIntervalRef.current) {
+        clearInterval(loadingIntervalRef.current);
+        loadingIntervalRef.current = null;
+      }
+      setLoadingPhase(null);
+    }
+  };
+
 
   const loadDemoAccount = (name, tag) => {
     setGameName(name);
@@ -96,7 +269,7 @@ export default function Home() {
 
   return (
     <main className="min-h-screen bg-gradient-to-b from-gray-900 to-gray-800 text-white p-8">
-      <div className="max-w-4xl mx-auto">
+      <div className="max-w-4xl mx-auto relative">
         <h1 className="text-5xl font-bold text-center mb-4 bg-gradient-to-r from-blue-400 to-purple-600 bg-clip-text text-transparent">
           Rift Rewind
         </h1>
@@ -207,7 +380,7 @@ export default function Home() {
             {insights && (
               <div className="bg-gradient-to-br from-blue-900/30 to-purple-900/30 rounded-lg p-6 shadow-lg border border-blue-500/30">
                 <div className="flex items-center gap-3 mb-4">
-                  <span className="text-3xl">🤖</span>
+                  <Bot size={22} className="text-blue-300" />
                   <h3 className="text-2xl font-bold">{insights.title || 'Champion Personality'}</h3>
                 </div>
                 
@@ -300,6 +473,23 @@ export default function Home() {
             </div>
           </div>
         )}
+        {/** Poro Assistant fixed bottom-right, always mounted */}
+        <PoroAssistant
+          state={poroState}
+          showDialogue={dialogueVisible ? (
+            <DialogueBox
+              text={dialogue}
+              options={profile ? options : []}
+              onOption={handleDialogueOption}
+              typing={!dialogueLoading}
+              disabled={dialogueLoading}
+              loadingPhase={dialogueLoading ? loadingPhase : null}
+              showFreeInput={!!profile}
+              onFreeSubmit={handleFreeSubmit}
+            />
+          ) : null}
+          scale={9}
+        />
       </div>
     </main>
   );
