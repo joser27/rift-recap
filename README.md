@@ -72,6 +72,8 @@ rift-recap/
 │   │   ├── api/                # Serverless API routes
 │   │   │   ├── summoner/
 │   │   │   │   └── route.js    # GET: Fetch summoner + match history
+│   │   │   ├── match/
+│   │   │   │   └── route.js    # GET: Fetch more matches (pagination: start/count)
 │   │   │   └── insights/
 │   │   │       └── route.js    # POST: Generate AI insights from match data
 │   │   ├── globals.css         # Tailwind base styles
@@ -105,8 +107,9 @@ rift-recap/
 | `src/lib/riotApi.js` | Abstracts all Riot API calls | Handles rate limiting, retries, parallel fetching |
 | `src/lib/awsAi.js` | Abstracts AWS Bedrock calls | Prompt engineering, JSON parsing, error handling |
 | `src/app/api/summoner/route.js` | Fetches player data | Combines account + summoner + matches in one call |
+| `src/app/api/match/route.js` | Fetch additional matches | GET with `puuid`, `start`, `count` (pagination) |
 | `src/app/api/insights/route.js` | Generates AI insights | Receives profile data, returns AI-generated text |
-| `src/app/page.js` | Main UI component | Handles demo vs. live mode, displays results |
+| `src/app/page.js` | Main UI component | Demo vs. live mode, champion icons, role icons, Load More |
 | `public/demo-data/*.json` | Pre-fetched demo data | For instant loading during demos/judging |
 
 ---
@@ -122,6 +125,15 @@ rift-recap/
 - [x] Demo account system (instant vs. live mode)
 - [x] Responsive UI with loading states
 - [x] Error handling & user feedback
+
+### ✅ Recently Added (This Update)
+- [x] Custom cursor: `hand1.png` globally; `hand2.png` on links/buttons
+- [x] Champion icons via CDN (CommunityDragon) using `championId` (no filename issues)
+- [x] Role icons shown in match rows from `public/lolAssets/lol/roles/*.png`
+- [x] Load More Matches button with on-demand pagination (no extra initial wait)
+- [x] New API: `GET /api/match` with `puuid`, `start`, `count`
+- [x] Caching of fetched matches in UI to avoid re-fetching
+- [x] Dev performance: moved large assets to CDN to speed up `npm run dev`
 
 ### 🚧 In Progress (Week 2)
 - [ ] Additional AI insights:
@@ -200,6 +212,32 @@ Try the demo account: Click "⚡ Bosey#NA1"
 Or search any summoner: e.g., Faker#KR1
 
 
+🔧 New Configuration/Assets
+
+Custom Cursor (global + interactive elements):
+
+```css
+/* globals.css */
+html, body, * {
+  cursor: url('/lolAssets/cursor/hand1.png') 8 2, auto;
+}
+
+button, a, [role="button"], input[type="submit"], input[type="button"],
+summary, [onclick], .cursor-pointer {
+  cursor: url('/lolAssets/cursor/hand2.png') 8 2, pointer !important;
+}
+```
+
+Champion icons via CDN (CommunityDragon) using championId:
+
+```javascript
+// Example (used in page.js)
+const championIconUrl = (championId) => `https://cdn.communitydragon.org/latest/champion/${championId}/square`;
+```
+
+Role icons (local): place PNGs in `public/lolAssets/lol/roles/` with filenames: `top.png`, `jungle.png`, `middle.png`, `bottom.png`, `support.png`, `fill.png`, `unknown.png`.
+
+
 🎮 How It Works
 User Flow
 User enters summoner name
@@ -248,6 +286,7 @@ Data Flow
    ↓ Parallel fetch: Account + Summoner + 20 Matches
    
 4. Return profile data to frontend
+   ↓ Optional: GET /api/match?puuid=...&start=20&count=20 (Load More)
    ↓ POST /api/insights with profile data
    
 5. Insights API (api/insights/route.js)
@@ -331,6 +370,20 @@ Rate Limiting (429 errors)
 Cause: Hitting Riot API limits (20 req/sec)
 Solution: Already handled automatically with p-limit and retry logic
 
+Dev Server Starts Slowly After Adding Many Images
+Cause:
+- Next.js dev server (Turbopack) scans and watches all files in the repo.
+- Large local image folders in `public/` significantly increase startup time, especially on Windows.
+
+Solutions Implemented:
+- Use CDN for champion icons (CommunityDragon) to avoid bundling thousands of files.
+- Keep only small local assets (cursor hands, role icons) in `public/`.
+
+Extra Tips:
+- Consider running in WSL2 and storing the repo in the Linux filesystem for faster dev on Windows.
+- Exclude the project folder from antivirus real-time scanning.
+- You can try `next dev --no-turbo` once to compare startup characteristics.
+
 🏗️ Development Timeline
 DateMilestoneStatusOct 11Riot API integration, basic UI✅ CompleteOct 12AWS Bedrock setup, first AI insight✅ CompleteOct 13Demo accounts, UI polish✅ CompleteOct 14-17Additional insights, visualizations🚧 In ProgressOct 18-24Shareable cards, mobile responsive📅 PlannedOct 25-31Demo video, documentation📅 PlannedNov 1-10Final testing, buffer time📅 PlannedNov 10Submission Deadline (2pm PST)🎯 Goal
 
@@ -361,6 +414,33 @@ Response:
     "matches": [ /* 20 match objects */ ]
   }
 }
+
+GET /api/match
+Fetches additional matches (pagination) for an existing player by `puuid`.
+
+Query Parameters:
+
+- `puuid` (required): Player UUID
+- `start` (optional): Starting index (default: 20)
+- `count` (optional): Number of matches to fetch (default: 20; max ~100)
+
+Example Request:
+
+```bash
+curl "http://localhost:3000/api/match?puuid=PLAYER_PUUID&start=20&count=20"
+```
+
+Response:
+
+```json
+{
+  "success": true,
+  "data": {
+    "matches": [ /* array of match objects */ ],
+    "hasMore": true
+  }
+}
+```
 POST /api/insights
 Generates AI insights from profile data.
 Request Body:
