@@ -62,9 +62,9 @@ export async function getSummonerByPuuid(puuid, platform = PLATFORMS.NA1) {
   return await riotRequest(url);
 }
 
-// Get match IDs for a PUUID
-export async function getMatchIds(puuid, count = 20, region = REGIONS.AMERICAS) {
-  const url = `https://${region}.api.riotgames.com/lol/match/v5/matches/by-puuid/${puuid}/ids?start=0&count=${count}`;
+// Get match IDs for a PUUID (with pagination support)
+export async function getMatchIds(puuid, count = 20, start = 0, region = REGIONS.AMERICAS) {
+  const url = `https://${region}.api.riotgames.com/lol/match/v5/matches/by-puuid/${puuid}/ids?start=${start}&count=${count}`;
   return await riotRequest(url);
 }
 
@@ -102,8 +102,8 @@ export async function getPlayerProfile(gameName, tagLine = 'NA1') {
   // Get summoner data
   const summoner = await getSummonerByPuuid(puuid);
   
-  // Get match IDs
-  const matchIds = await getMatchIds(puuid, 20);
+  // Get match IDs (start with 20)
+  const matchIds = await getMatchIds(puuid, 20, 0);
   
   // Get match details in parallel
   const matches = await getMatchesParallel(matchIds);
@@ -113,4 +113,22 @@ export async function getPlayerProfile(gameName, tagLine = 'NA1') {
     summoner,
     matches
   };
+}
+
+// Fetch additional matches for an existing profile (pagination)
+export async function getAdditionalMatches(puuid, start = 20, count = 20, region = REGIONS.AMERICAS) {
+  console.log(`Fetching ${count} additional matches starting from index ${start}...`);
+  
+  // Get match IDs
+  const matchIds = await getMatchIds(puuid, count, start, region);
+  
+  if (matchIds.length === 0) {
+    console.log('No more matches available');
+    return [];
+  }
+  
+  // Get match details in parallel
+  const matches = await getMatchesParallel(matchIds, region);
+  
+  return matches;
 }

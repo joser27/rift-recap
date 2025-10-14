@@ -48,6 +48,11 @@ export default function Home() {
   ]), []);
   const [options, setOptions] = useState(baseOptions);
   const lastAnswerRef = useRef('');
+  
+  // Load More state
+  const [loadingMoreMatches, setLoadingMoreMatches] = useState(false);
+  const [hasMoreMatches, setHasMoreMatches] = useState(true);
+  const [allMatches, setAllMatches] = useState([]); // Cache all fetched matches
 
   const handleSearch = async (e) => {
     e.preventDefault();
@@ -61,6 +66,9 @@ export default function Home() {
     setPoroState('thinking');
     setOptions(baseOptions);
     lastAnswerRef.current = '';
+    // Reset load more state
+    setAllMatches([]);
+    setHasMoreMatches(true);
 
     try {
       // Check if this is a demo account first
@@ -71,6 +79,8 @@ export default function Home() {
         setProfile(demoData.profile);
         setInsights(demoData.insights);
         setIsDemo(true);
+        setAllMatches(demoData.profile.matches);
+        setHasMoreMatches(false); // Demo accounts are pre-loaded, no more to fetch
         // Phase 2: deliver initial insight
         setDialogue("I've got a quick insight ready!");
         setDialogueVisible(true);
@@ -91,6 +101,8 @@ export default function Home() {
       }
 
       setProfile(data.data);
+      setAllMatches(data.data.matches); // Initialize cache with first 20
+      setHasMoreMatches(data.data.matches.length === 20); // If we got 20, there might be more
 
       // No prefetching AI to save costs; just show conversational prompt
       setDialogue("I took a peek at your recent games—want a quick overview?");
@@ -323,6 +335,44 @@ export default function Home() {
   };
 
 
+  const handleLoadMoreMatches = async () => {
+    if (!profile || isDemo || loadingMoreMatches) return;
+    
+    setLoadingMoreMatches(true);
+    try {
+      const currentCount = allMatches.length;
+      const res = await fetch(
+        `/api/match?puuid=${encodeURIComponent(profile.account.puuid)}&start=${currentCount}&count=20`
+      );
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to fetch more matches');
+      }
+
+      const newMatches = data.data.matches;
+      
+      if (newMatches.length > 0) {
+        // Append new matches to cache
+        setAllMatches(prev => [...prev, ...newMatches]);
+        // Update profile with all matches (for AI analysis)
+        setProfile(prev => ({
+          ...prev,
+          matches: [...prev.matches, ...newMatches]
+        }));
+      }
+      
+      // Update hasMore flag
+      setHasMoreMatches(data.data.hasMore && newMatches.length > 0);
+      
+    } catch (err) {
+      console.error('Load more error:', err);
+      // Don't break the UI, just log the error
+    } finally {
+      setLoadingMoreMatches(false);
+    }
+  };
+
   const loadDemoAccount = (name, tag) => {
     setGameName(name);
     setTagLine(tag);
@@ -330,6 +380,31 @@ export default function Home() {
     setTimeout(() => {
       document.querySelector('form').requestSubmit();
     }, 100);
+  };
+
+  // Asset helpers
+  const getChampionTileSrc = (championName) => {
+    if (!championName) return '';
+    return `/lolAssets/lol/champions/tiles/${championName}_0.jpg`;
+  };
+
+  const getRoleIconSrc = (roleRaw) => {
+    const role = (roleRaw || '').toUpperCase();
+    const map = {
+      TOP: 'top',
+      JUNGLE: 'jungle',
+      MIDDLE: 'middle',
+      MID: 'middle',
+      BOTTOM: 'bottom',
+      ADC: 'bottom',
+      CARRY: 'bottom',
+      DUO_CARRY: 'bottom',
+      SUPPORT: 'support',
+      UTILITY: 'support',
+      FILL: 'fill'
+    };
+    const file = map[role] || 'unknown';
+    return `/lolAssets/lol/roles/${file}.png`;
   };
 
   return (
@@ -495,10 +570,10 @@ export default function Home() {
             {/* Match History (collapsed by default) */}
             <details className="bg-gray-800 rounded-lg p-6 shadow-lg">
               <summary className="text-xl font-bold cursor-pointer hover:text-blue-400 transition">
-                Recent Matches ({profile.matches.length})
+                Recent Matches ({allMatches.length})
               </summary>
               <div className="space-y-2 mt-4">
-                {profile.matches.slice(0, 10).map((match) => {
+                {allMatches.map((match) => {
                   const participant = match.info.participants.find(
                     p => p.puuid === profile.account.puuid
                   );
@@ -527,6 +602,12 @@ export default function Home() {
                     >
                       <div className="flex justify-between items-center">
                         <div className="flex items-center gap-4">
+                          <img
+                            src={getChampionTileSrc(participant.championName)}
+                            alt={`${participant.championName} tile`}
+                            className="w-12 h-12 rounded-md object-cover shrink-0"
+                            onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                          />
                           <span className="font-bold text-lg">{participant.championName}</span>
                           <span className="text-gray-300">
                             {participant.kills}/{participant.deaths}/{participant.assists}
@@ -534,7 +615,13 @@ export default function Home() {
                           <span className="text-sm text-gray-400">
                             KDA: {kdaRatio}
                           </span>
-                          <span className="text-sm text-gray-400">
+                          <span className="text-sm text-gray-400 inline-flex items-center gap-1">
+                            <img
+                              src={getRoleIconSrc(role)}
+                              alt={`${role} icon`}
+                              className="w-4 h-4 inline-block"
+                              onError={(e) => { e.currentTarget.style.visibility = 'hidden'; }}
+                            />
                             Role: {role}
                           </span>
                         </div>
@@ -599,6 +686,12 @@ export default function Home() {
                                         return (
                                           <div key={p.puuid} className="grid grid-cols-6 gap-2 text-sm text-gray-200 px-2 py-1 bg-white/5/0 hover:bg-white/5/10">
                                             <div className="col-span-2 flex items-center gap-2 min-w-0">
+                                              <img
+                                                src={getChampionTileSrc(p.championName)}
+                                                alt={`${p.championName} tile`}
+                                                className="w-6 h-6 rounded object-cover shrink-0"
+                                                onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                                              />
                                               <span className="font-semibold truncate" title={p.summonerName || p.riotIdGameName || 'Unknown'}>
                                                 {p.summonerName || p.riotIdGameName || 'Unknown'}
                                               </span>
@@ -630,6 +723,35 @@ export default function Home() {
                     </div>
                   );
                 })}
+                
+                {/* Load More Button */}
+                {!isDemo && hasMoreMatches && (
+                  <div className="mt-6 text-center">
+                    <button
+                      onClick={handleLoadMoreMatches}
+                      disabled={loadingMoreMatches}
+                      className="px-6 py-3 bg-blue-600 hover:bg-blue-700 rounded-lg font-semibold disabled:opacity-50 disabled:cursor-not-allowed transition inline-flex items-center gap-2"
+                    >
+                      {loadingMoreMatches ? (
+                        <>
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                          Loading more matches...
+                        </>
+                      ) : (
+                        <>
+                          Load 20 More Matches
+                          <span className="text-xs text-blue-300">({allMatches.length} loaded)</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+                )}
+                
+                {!isDemo && !hasMoreMatches && allMatches.length > 20 && (
+                  <div className="mt-6 text-center text-gray-400 text-sm">
+                    📜 No more matches available - you&apos;ve loaded all {allMatches.length} matches!
+                  </div>
+                )}
               </div>
             </details>
 

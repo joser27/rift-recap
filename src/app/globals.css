@@ -24,3 +24,14 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+/* Custom cursor - uses hand1.png located in public/lolAssets/cursor/ */
+html, body, * {
+  cursor: url('/lolAssets/cursor/hand1.png') 8 2, auto;
+}
+
+/* Use hand2.png for interactive elements (buttons, links, clickable items) */
+button, a, [role="button"], input[type="submit"], input[type="button"], 
+summary, [onclick], .cursor-pointer {
+  cursor: url('/lolAssets/cursor/hand2.png') 8 2, pointer !important;
+}
