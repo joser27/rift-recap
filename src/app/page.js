@@ -385,8 +385,9 @@ export default function Home() {
   // Asset helpers
   const getChampionIconSrc = (championId) => {
     if (!championId) return '';
-    // Use ID-based CDN to avoid name normalization issues (e.g., Cho'Gath)
-    return `https://cdn.communitydragon.org/latest/champion/${championId}/square`;
+    // Proxy through our API to avoid ORB/CORS blocks and add fallbacks
+    const url = `/api/champion-icon?id=${encodeURIComponent(championId)}`;
+    return url;
   };
 
   const getRoleIconSrc = (roleRaw) => {
