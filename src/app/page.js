@@ -104,7 +104,26 @@ export default function Home() {
       setAllMatches(data.data.matches); // Initialize cache with first 20
       setHasMoreMatches(data.data.matches.length === 20); // If we got 20, there might be more
 
-      // No prefetching AI to save costs; just show conversational prompt
+      // Kick off AI insights for all accounts
+      try {
+        setInsightsLoading(true);
+        const insRes = await fetch('/api/insights', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data.data)
+        });
+        const insData = await insRes.json();
+        if (insRes.ok && insData?.insights) {
+          setInsights(insData.insights);
+        }
+      } catch (e) {
+        // Keep UI responsive even if insights fail
+        console.warn('Insights fetch failed', e);
+      } finally {
+        setInsightsLoading(false);
+      }
+
+      // Conversational prompt stays the same
       setDialogue("I took a peek at your recent games—want a quick overview?");
       setDialogueVisible(true);
       setPoroState('ready');
@@ -115,7 +134,6 @@ export default function Home() {
       setPoroState('idle');
     } finally {
       setLoading(false);
-      setInsightsLoading(false);
     }
   };
   const handleDialogueOption = async (key) => {
@@ -569,8 +587,8 @@ export default function Home() {
               </div>
             )}
 
-            {/* Match History (collapsed by default) */}
-            <details className="bg-gray-800 rounded-lg p-6 shadow-lg">
+            {/* Match History (open by default) */}
+            <details open className="bg-gray-800 rounded-lg p-6 shadow-lg">
               <summary className="text-xl font-bold cursor-pointer hover:text-blue-400 transition">
                 Recent Matches ({allMatches.length})
               </summary>
