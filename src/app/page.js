@@ -383,9 +383,11 @@ export default function Home() {
   };
 
   // Asset helpers
+  const DDRAGON_VERSION = '14.20.1';
   const getChampionTileSrc = (championName) => {
     if (!championName) return '';
-    return `/lolAssets/lol/champions/tiles/${championName}_0.jpg`;
+    // Prefer CDN (Data Dragon) to avoid bundling thousands of images locally
+    return `https://ddragon.leagueoflegends.com/cdn/${DDRAGON_VERSION}/img/champion/tiles/${championName}_0.jpg`;
   };
 
   const getRoleIconSrc = (roleRaw) => {
@@ -606,7 +608,11 @@ export default function Home() {
                             src={getChampionTileSrc(participant.championName)}
                             alt={`${participant.championName} tile`}
                             className="w-12 h-12 rounded-md object-cover shrink-0"
-                            onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                            loading="lazy"
+                            onError={(e) => {
+                              // Fallback to local asset if CDN lookup fails
+                              e.currentTarget.src = `/lolAssets/lol/champions/tiles/${participant.championName}_0.jpg`;
+                            }}
                           />
                           <span className="font-bold text-lg">{participant.championName}</span>
                           <span className="text-gray-300">
@@ -690,7 +696,10 @@ export default function Home() {
                                                 src={getChampionTileSrc(p.championName)}
                                                 alt={`${p.championName} tile`}
                                                 className="w-6 h-6 rounded object-cover shrink-0"
-                                                onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                                                loading="lazy"
+                                                onError={(e) => {
+                                                  e.currentTarget.src = `/lolAssets/lol/champions/tiles/${p.championName}_0.jpg`;
+                                                }}
                                               />
                                               <span className="font-semibold truncate" title={p.summonerName || p.riotIdGameName || 'Unknown'}>
                                                 {p.summonerName || p.riotIdGameName || 'Unknown'}
