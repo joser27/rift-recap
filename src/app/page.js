@@ -160,9 +160,11 @@ export default function Home() {
       setProfile(data.data);
       setAllMatches(data.data.matches); // Initialize cache with first 20
       setHasMoreMatches(data.data.matches.length === 20); // If we got 20, there might be more
+      setLoading(false); // Profile loaded, hide main loading spinner
       
       // Fetch mastery first, then generate insights with mastery data
       setInsightsLoading(true);
+      setMasteryLoading(true);
       try {
         const params = new URLSearchParams();
         if (data.data.summoner?.id) params.set('summonerId', data.data.summoner.id);
@@ -208,7 +210,6 @@ export default function Home() {
     } catch (err) {
       setError(err.message);
       setPoroState('idle');
-    } finally {
       setLoading(false);
     }
   };
