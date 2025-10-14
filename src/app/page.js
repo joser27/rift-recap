@@ -383,10 +383,10 @@ export default function Home() {
   };
 
   // Asset helpers
-  const DDRAGON_VERSION = '14.20.1';
-  const getChampionTileSrc = (championName) => {
-    if (!championName) return '';
-    return `https://ddragon.leagueoflegends.com/cdn/${DDRAGON_VERSION}/img/champion/tiles/${championName}_0.jpg`;
+  const getChampionIconSrc = (championId) => {
+    if (!championId) return '';
+    // Use ID-based CDN to avoid name normalization issues (e.g., Cho'Gath)
+    return `https://cdn.communitydragon.org/latest/champion/${championId}/square`;
   };
 
   const getRoleIconSrc = (roleRaw) => {
@@ -604,14 +604,11 @@ export default function Home() {
                       <div className="flex justify-between items-center">
                         <div className="flex items-center gap-4">
                           <img
-                            src={getChampionTileSrc(participant.championName)}
-                            alt={`${participant.championName} tile`}
+                            src={getChampionIconSrc(participant.championId)}
+                            alt={`${participant.championName} icon`}
                             className="w-12 h-12 rounded-md object-cover shrink-0"
                             loading="lazy"
-                            onError={(e) => {
-                              // Fallback to local asset if CDN lookup fails
-                              e.currentTarget.src = `/lolAssets/lol/champions/tiles/${participant.championName}_0.jpg`;
-                            }}
+                            onError={(e) => { e.currentTarget.style.display = 'none'; }}
                           />
                           <span className="font-bold text-lg">{participant.championName}</span>
                           <span className="text-gray-300">
@@ -692,13 +689,11 @@ export default function Home() {
                                           <div key={p.puuid} className="grid grid-cols-6 gap-2 text-sm text-gray-200 px-2 py-1 bg-white/5/0 hover:bg-white/5/10">
                                             <div className="col-span-2 flex items-center gap-2 min-w-0">
                                               <img
-                                                src={getChampionTileSrc(p.championName)}
-                                                alt={`${p.championName} tile`}
+                                                src={getChampionIconSrc(p.championId)}
+                                                alt={`${p.championName} icon`}
                                                 className="w-6 h-6 rounded object-cover shrink-0"
                                                 loading="lazy"
-                                                onError={(e) => {
-                                                  e.currentTarget.src = `/lolAssets/lol/champions/tiles/${p.championName}_0.jpg`;
-                                                }}
+                                                onError={(e) => { e.currentTarget.style.display = 'none'; }}
                                               />
                                               <span className="font-semibold truncate" title={p.summonerName || p.riotIdGameName || 'Unknown'}>
                                                 {p.summonerName || p.riotIdGameName || 'Unknown'}
