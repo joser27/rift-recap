@@ -386,7 +386,6 @@ export default function Home() {
   const DDRAGON_VERSION = '14.20.1';
   const getChampionTileSrc = (championName) => {
     if (!championName) return '';
-    // Prefer CDN (Data Dragon) to avoid bundling thousands of images locally
     return `https://ddragon.leagueoflegends.com/cdn/${DDRAGON_VERSION}/img/champion/tiles/${championName}_0.jpg`;
   };
 
