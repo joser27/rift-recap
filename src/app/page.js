@@ -160,31 +160,43 @@ export default function Home() {
       setProfile(data.data);
       setAllMatches(data.data.matches); // Initialize cache with first 20
       setHasMoreMatches(data.data.matches.length === 20); // If we got 20, there might be more
-      // Fetch mastery for live profile
-      fetchMastery(
-        data.data.summoner?.id,
-        data.data.account?.tagLine,
-        data.data.account?.puuid,
-        data.data.matches
-      );
-
-      // Kick off AI insights for all accounts
+      
+      // Fetch mastery first, then generate insights with mastery data
+      setInsightsLoading(true);
       try {
-        setInsightsLoading(true);
+        const params = new URLSearchParams();
+        if (data.data.summoner?.id) params.set('summonerId', data.data.summoner.id);
+        if (data.data.account?.puuid) params.set('puuid', data.data.account.puuid);
+        params.set('count', '40');
+        params.set('platform', (data.data.account?.tagLine || 'NA1').toUpperCase());
+        
+        const masteryRes = await fetch(`/api/mastery?${params.toString()}`);
+        const masteryData = await masteryRes.json();
+        const fetchedMastery = masteryRes.ok && Array.isArray(masteryData.mastery) 
+          ? masteryData.mastery 
+          : computeTopFromMatches(data.data.matches, data.data.account.puuid);
+        
+        setMastery(fetchedMastery);
+        setMasteryLoading(false);
+
+        // Generate AI insights with both profile and mastery
         const insRes = await fetch('/api/insights', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(data.data)
+          body: JSON.stringify({ ...data.data, mastery: fetchedMastery })
         });
         const insData = await insRes.json();
         if (insRes.ok && insData?.insights) {
           setInsights(insData.insights);
         }
       } catch (e) {
-        // Keep UI responsive even if insights fail
-        console.warn('Insights fetch failed', e);
+        console.warn('Insights/mastery fetch failed', e);
+        // Fallback to recent matches for mastery
+        const fallback = computeTopFromMatches(data.data.matches, data.data.account.puuid);
+        setMastery(fallback);
       } finally {
         setInsightsLoading(false);
+        setMasteryLoading(false);
       }
 
       // Conversational prompt stays the same
@@ -716,7 +728,6 @@ export default function Home() {
                             loading="lazy"
                             onError={(e) => { e.currentTarget.style.display = 'none'; }}
                           />
-                          <span className="font-bold text-lg">{participant.championName}</span>
                           <span className="text-gray-300">
                             {participant.kills}/{participant.deaths}/{participant.assists}
                           </span>
@@ -782,7 +793,7 @@ export default function Home() {
                                       Team {teamId === 100 ? 'Blue' : 'Red'}
                                     </div>
                                     <div className="grid grid-cols-6 gap-2 text-xs uppercase tracking-wide text-gray-400 px-2 pb-1">
-                                      <div className="col-span-2">Player (Champ)</div>
+                                      <div className="col-span-2">Player</div>
                                       <div className="text-center">K/D/A</div>
                                       <div className="text-center">CS</div>
                                       <div className="text-right">Gold</div>
@@ -804,7 +815,6 @@ export default function Home() {
                                               <span className="font-semibold truncate" title={p.summonerName || p.riotIdGameName || 'Unknown'}>
                                                 {p.summonerName || p.riotIdGameName || 'Unknown'}
                                               </span>
-                                              <span className="text-gray-400 shrink-0">({p.championName})</span>
                                             </div>
                                             <div className="text-center text-gray-300">
                                               {p.kills}/{p.deaths}/{p.assists}

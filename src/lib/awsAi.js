@@ -205,10 +205,35 @@ function extractMatchStats(matches, playerPuuid) {
  * Generate insights from match data
  */
 export async function generatePlayerInsights(profileData) {
-  const { account, summoner, matches } = profileData;
+  const { account, summoner, matches, mastery } = profileData;
 
   // Extract key stats
   const stats = extractMatchStats(matches, account.puuid);
+
+  // Format mastery data if available - map championId to name from recent matches
+  let masteryText = '';
+  if (mastery && mastery.length > 0) {
+    // Build championId -> championName map from matches
+    const champIdToName = new Map();
+    matches.forEach(m => {
+      m?.info?.participants?.forEach(p => {
+        if (p.championId && p.championName) {
+          champIdToName.set(p.championId, p.championName);
+        }
+      });
+    });
+
+    const topMastery = mastery.slice(0, 5)
+      .filter(m => m.championLevel != null)
+      .map(m => {
+        const name = champIdToName.get(m.championId) || `Champion ${m.championId}`;
+        return `${name} - Level ${m.championLevel} (${(m.championPoints || 0).toLocaleString()} pts)`;
+      })
+      .join(', ');
+    if (topMastery) {
+      masteryText = `\n- Top Mastery Champions: ${topMastery}`;
+    }
+  }
 
   // Create prompt for Claude
   const prompt = `You are an expert League of Legends coach analyzing a player's performance. Be insightful, specific, and add some personality - make it fun but helpful!
@@ -225,11 +250,11 @@ STATISTICS:
 - Main Role: ${stats.mainRole}
 - First Bloods: ${stats.firstBloods}
 - Penta Kills: ${stats.pentaKills}
-- Avg Game Duration: ${stats.avgGameDuration} minutes
+- Avg Game Duration: ${stats.avgGameDuration} minutes${masteryText}
 
 Generate a "Champion Personality" insight that:
 1. Gives them a memorable nickname based on their playstyle
-2. Describes their playstyle with specific data
+2. Describes their playstyle with specific data (consider both recent match performance AND overall mastery - mastery shows long-term champion expertise)
 3. Highlights their main strength
 4. Points out one area to improve (be constructive!)
 5. Include a fun fact from their stats
@@ -252,10 +277,26 @@ Format as JSON:
       maxTokens: 1500
     });
 
-    // Try to parse as JSON
-    const jsonMatch = response.match(/\{[\s\S]*\}/);
+    // Try to parse as JSON - handle various formats
+    let jsonMatch = response.match(/\{[\s\S]*\}/);
     if (jsonMatch) {
-      return JSON.parse(jsonMatch[0]);
+      try {
+        // Try direct parse first
+        return JSON.parse(jsonMatch[0]);
+      } catch (parseError) {
+        // If that fails, try cleaning up common issues
+        let cleaned = jsonMatch[0]
+          .replace(/[\u2018\u2019]/g, "'")  // Smart quotes to straight quotes
+          .replace(/[\u201C\u201D]/g, '"')  // Smart double quotes
+          .replace(/,(\s*[}\]])/g, '$1')    // Remove trailing commas
+          .replace(/([{,]\s*)(\w+):/g, '$1"$2":'); // Quote unquoted keys
+        
+        try {
+          return JSON.parse(cleaned);
+        } catch (e) {
+          console.warn('JSON parse failed even after cleanup:', e.message);
+        }
+      }
     }
 
     // Fallback if not JSON
