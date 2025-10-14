@@ -53,6 +53,55 @@ export default function Home() {
   const [loadingMoreMatches, setLoadingMoreMatches] = useState(false);
   const [hasMoreMatches, setHasMoreMatches] = useState(true);
   const [allMatches, setAllMatches] = useState([]); // Cache all fetched matches
+  // Mastery state
+  const [mastery, setMastery] = useState([]);
+  const [masteryLoading, setMasteryLoading] = useState(false);
+
+  const computeTopFromMatches = (matches, playerPuuid) => {
+    try {
+      const counts = new Map();
+      (matches || []).forEach(m => {
+        const p = m?.info?.participants?.find(x => x.puuid === playerPuuid);
+        if (p && p.championId != null) {
+          const champIdNum = Number(p.championId);
+          if (!Number.isNaN(champIdNum)) {
+            counts.set(champIdNum, (counts.get(champIdNum) || 0) + 1);
+          }
+        }
+      });
+      return Array.from(counts.entries())
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 5)
+        .map(([championId, games]) => ({ championId, championPoints: null, championLevel: null, games }));
+    } catch {
+      return [];
+    }
+  };
+
+  const fetchMastery = async (summonerId, platform, puuid, fallbackMatches) => {
+    if (!summonerId && !puuid) return;
+    try {
+      setMasteryLoading(true);
+      const params = new URLSearchParams();
+      if (summonerId) params.set('summonerId', summonerId);
+      if (puuid) params.set('puuid', puuid);
+      params.set('count', '5');
+      params.set('platform', (platform || 'NA1').toUpperCase());
+      const res = await fetch(`/api/mastery?${params.toString()}`);
+      const data = await res.json();
+      if (res.ok && Array.isArray(data.mastery)) {
+        setMastery(data.mastery);
+      } else {
+        const fallback = computeTopFromMatches(fallbackMatches, puuid);
+        setMastery(fallback);
+      }
+    } catch (e) {
+      const fallback = computeTopFromMatches(fallbackMatches, puuid);
+      setMastery(fallback);
+    } finally {
+      setMasteryLoading(false);
+    }
+  };
 
   const handleSearch = async (e) => {
     e.preventDefault();
@@ -81,6 +130,13 @@ export default function Home() {
         setIsDemo(true);
         setAllMatches(demoData.profile.matches);
         setHasMoreMatches(false); // Demo accounts are pre-loaded, no more to fetch
+        // Fetch mastery for demo profile as well
+        fetchMastery(
+          demoData.profile.summoner?.id,
+          demoData.profile.account?.tagLine,
+          demoData.profile.account?.puuid,
+          demoData.profile.matches
+        );
         // Phase 2: deliver initial insight
         setDialogue("I've got a quick insight ready!");
         setDialogueVisible(true);
@@ -103,6 +159,13 @@ export default function Home() {
       setProfile(data.data);
       setAllMatches(data.data.matches); // Initialize cache with first 20
       setHasMoreMatches(data.data.matches.length === 20); // If we got 20, there might be more
+      // Fetch mastery for live profile
+      fetchMastery(
+        data.data.summoner?.id,
+        data.data.account?.tagLine,
+        data.data.account?.puuid,
+        data.data.matches
+      );
 
       // Kick off AI insights for all accounts
       try {
@@ -429,7 +492,53 @@ export default function Home() {
 
   return (
     <main className="min-h-screen bg-gradient-to-b from-gray-900 to-gray-800 text-white p-8">
-      <div className="max-w-4xl mx-auto relative">
+      <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-6 relative">
+        {/* Left Sidebar: Top Mastery - reserve space on large screens to prevent layout shift */}
+        <aside className="hidden lg:block lg:col-span-3">
+          {profile ? (
+            <div className="bg-gray-800 rounded-lg p-6 shadow-lg border border-gray-700 sticky top-6">
+              <h3 className="text-xl font-bold mb-4">Top Mastery</h3>
+              {masteryLoading && (
+                <p className="text-gray-400">Loading mastery...</p>
+              )}
+              {!masteryLoading && mastery.length === 0 && (
+                <p className="text-gray-500">No mastery data found.</p>
+              )}
+              <div className="space-y-3">
+                {mastery.map((m) => (
+                  <div key={m.championId} className="flex items-center gap-3 bg-black/20 rounded border border-white/5 p-2">
+                    <img
+                      src={getChampionIconSrc(m.championId)}
+                      alt={`Champion ${m.championId}`}
+                      className="w-10 h-10 rounded object-cover"
+                      loading="lazy"
+                      onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                    />
+                    <div className="flex-1 min-w-0">
+                      {m.championLevel != null ? (
+                        <div className="flex items-center justify-between">
+                          <span className="text-gray-200">Level {m.championLevel}</span>
+                          <span className="text-xs text-gray-400">{(m.championPoints || 0).toLocaleString()} pts</span>
+                        </div>
+                      ) : (
+                        <div className="flex items-center justify-between">
+                          <span className="text-gray-200">Recent picks</span>
+                          <span className="text-xs text-gray-400">{m.games} games</span>
+                        </div>
+                      )}
+                      {m.chestGranted && (
+                        <span className="text-xs text-yellow-400">Chest granted</span>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <div className="sticky top-6"></div>
+          )}
+        </aside>
+        <div className="lg:col-span-6">
         <h1 className="text-5xl font-bold text-center mb-4 bg-gradient-to-r from-blue-400 to-purple-600 bg-clip-text text-transparent">
           Rift Rewind
         </h1>
@@ -810,6 +919,9 @@ export default function Home() {
           ) : null}
           scale={9}
         />
+        </div>
+        {/* Right spacer to balance grid and keep center truly centered */}
+        <aside className="hidden lg:block lg:col-span-3"></aside>
       </div>
     </main>
   );

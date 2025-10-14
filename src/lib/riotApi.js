@@ -13,7 +13,21 @@ export const REGIONS = {
 export const PLATFORMS = {
   NA1: 'na1',
   EUW1: 'euw1',
-  KR: 'kr'
+  EUN1: 'eun1',
+  KR: 'kr',
+  BR1: 'br1',
+  LA1: 'la1', // LAN
+  LA2: 'la2', // LAS
+  OC1: 'oc1',
+  RU: 'ru',
+  TR1: 'tr1',
+  JP1: 'jp1',
+  PH2: 'ph2',
+  SG2: 'sg2',
+  TH2: 'th2',
+  TW2: 'tw2',
+  VN2: 'vn2',
+  PBE1: 'pbe1'
 };
 
 // Helper function to make Riot API calls with retry logic
@@ -59,6 +73,18 @@ export async function getAccountByRiotId(gameName, tagLine = 'NA1', region = REG
 // Get summoner data by PUUID
 export async function getSummonerByPuuid(puuid, platform = PLATFORMS.NA1) {
   const url = `https://${platform}.api.riotgames.com/lol/summoner/v4/summoners/by-puuid/${puuid}`;
+  return await riotRequest(url);
+}
+
+// Get top champion mastery for a summoner (by summonerId, not PUUID)
+export async function getChampionMasteryTop(summonerId, count = 5, platform = PLATFORMS.NA1) {
+  const url = `https://${platform}.api.riotgames.com/lol/champion-mastery/v4/champion-masteries/by-summoner/${encodeURIComponent(summonerId)}/top?count=${count}`;
+  return await riotRequest(url);
+}
+
+// Some regions/contexts support fetching mastery by PUUID directly
+export async function getChampionMasteryTopByPuuid(puuid, count = 5, platform = PLATFORMS.NA1) {
+  const url = `https://${platform}.api.riotgames.com/lol/champion-mastery/v4/champion-masteries/by-puuid/${encodeURIComponent(puuid)}/top?count=${count}`;
   return await riotRequest(url);
 }
 
