@@ -6,7 +6,7 @@
 [![AWS Bedrock](https://img.shields.io/badge/AWS-Bedrock-orange)](https://aws.amazon.com/bedrock/)
 [![Riot API](https://img.shields.io/badge/Riot-API-red)](https://developer.riotgames.com/)
 
-**Live Demo:** [Coming Soon - Deploying to Vercel]  
+**Live Demo:** https://rift-recap.vercel.app/ 
 **Devpost:** https://riftrewind.devpost.com/
 
 ---
@@ -35,7 +35,8 @@ Unlike competitor sites that just show stats, we use **Claude 3.5 Haiku on AWS B
 - **Next.js 14** - React framework with App Router
 - **React 18** - UI components (functional components with hooks)
 - **Tailwind CSS** - Utility-first styling
-- **No UI library** - Custom components for full control
+- **D3.js** - Data visualizations (packed bubble chart)
+- **Custom components** - No UI library for full control
 
 ### Backend (Serverless)
 - **Next.js API Routes** - Serverless functions deployed as AWS Lambda (via Vercel)
@@ -57,99 +58,131 @@ Unlike competitor sites that just show stats, we use **Claude 3.5 Haiku on AWS B
 - `@aws-sdk/client-bedrock-runtime` - AWS Bedrock API client
 - `@aws-sdk/credential-providers` - AWS credential management
 - `p-limit` - Concurrency control for API calls
+- `d3` - Data visualization library for bubble charts
+- `lucide-react` - Icon library
 - `dotenv` - Environment variable management
 
 ---
 
 ## 📁 Folder Structure
+```
 rift-recap/
 ├── public/
-│   └── demo-data/              # Pre-fetched demo accounts (JSON files)
-│       └── bosey-na1.json      # Cached profile + AI insights for instant demos
+│   ├── demo-data/              # Pre-fetched demo accounts (JSON files)
+│   │   ├── yinyatsui-na1.json  # 200 matches + AI insights
+│   │   ├── solorenektononly-na1.json
+│   │   └── t1 ok good yes-na1.json
+│   └── lolAssets/              # Local League of Legends assets
+│       ├── cursor/             # Custom cursor images
+│       └── lol/roles/          # Role icons (top, jungle, mid, etc.)
 │
 ├── src/
 │   ├── app/                    # Next.js App Router (Pages + API)
 │   │   ├── api/                # Serverless API routes
-│   │   │   ├── summoner/
-│   │   │   │   └── route.js    # GET: Fetch summoner + match history
-│   │   │   ├── match/
-│   │   │   │   └── route.js    # GET: Fetch more matches (pagination: start/count)
-│   │   │   └── insights/
-│   │   │       └── route.js    # POST: Generate AI insights from match data
-│   │   ├── globals.css         # Tailwind base styles
-│   │   ├── layout.js           # Root layout (wraps all pages)
-│   │   └── page.js             # Home page (main UI)
+│   │   │   ├── summoner/route.js    # GET: Fetch summoner + 20 matches
+│   │   │   ├── match/route.js       # GET: Pagination (start/count params)
+│   │   │   ├── insights/route.js    # POST: Generate AI insights
+│   │   │   ├── mastery/route.js     # GET: Fetch top champion mastery
+│   │   │   ├── champion-icon/route.js # GET: Proxy champion images
+│   │   │   └── ai/route.js          # POST: Poro dialogue responses
+│   │   │
+│   │   ├── components/         # React components
+│   │   │   ├── PoroAssistant.jsx     # Interactive Poro sprite
+│   │   │   ├── poro.module.css       # Poro animations & styles
+│   │   │   ├── DialogueBox.jsx       # Chat bubble UI
+│   │   │   ├── DialogueBox.module.css
+│   │   │   └── MasteryBubbleChart.jsx # D3.js bubble visualization
+│   │   │
+│   │   ├── globals.css         # Tailwind base + custom cursor
+│   │   ├── layout.js           # Root layout
+│   │   └── page.js             # Main UI (search, results, interactions)
 │   │
 │   └── lib/                    # Shared utilities & helpers
-│       ├── riotApi.js          # Riot API wrapper functions
+│       ├── riotApi.js          # Riot API wrapper
 │       │                       # - getPlayerProfile(gameName, tagLine)
-│       │                       # - Parallel match fetching with rate limiting
-│       └── awsAi.js            # AWS Bedrock wrapper functions
+│       │                       # - getChampionMasteryTop(summonerId, count)
+│       │                       # - getAdditionalMatches(puuid, start, count)
+│       └── awsAi.js            # AWS Bedrock wrapper
 │                               # - callClaude(prompt, options)
 │                               # - generatePlayerInsights(profileData)
-│                               # - extractMatchStats(matches, playerPuuid)
+│                               # - buildDialoguePrompt(kind, profile, extra)
 │
 ├── scripts/
-│   └── fetch-demo-accounts.mjs # Pre-fetch demo data (run manually)
+│   └── fetch-demo-accounts.mjs # Pre-fetch 200 matches for demos
 │
 ├── .env.local                  # Environment variables (NOT in git)
-├── .gitignore                  # Ignores node_modules, .env.local, .next
-├── package.json                # Dependencies & scripts
+├── .gitignore
+├── package.json                # Dependencies: d3, @aws-sdk/*, p-limit
 ├── jsconfig.json               # Path aliases (@/* → ./src/*)
-├── next.config.mjs             # Next.js configuration
-├── tailwind.config.js          # Tailwind CSS configuration
-└── README.md                   # This file
+├── eslint.config.mjs           # ESLint rules (@next/next/no-img-element: off)
+├── next.config.mjs
+└── README.md
+```
 
 ### Important File Purposes
 
 | File | Purpose | Notes |
 |------|---------|-------|
-| `src/lib/riotApi.js` | Abstracts all Riot API calls | Handles rate limiting, retries, parallel fetching |
-| `src/lib/awsAi.js` | Abstracts AWS Bedrock calls | Prompt engineering, JSON parsing, error handling |
-| `src/app/api/summoner/route.js` | Fetches player data | Combines account + summoner + matches in one call |
-| `src/app/api/match/route.js` | Fetch additional matches | GET with `puuid`, `start`, `count` (pagination) |
-| `src/app/api/insights/route.js` | Generates AI insights | Receives profile data, returns AI-generated text |
-| `src/app/page.js` | Main UI component | Demo vs. live mode, champion icons, role icons, Load More |
-| `public/demo-data/*.json` | Pre-fetched demo data | For instant loading during demos/judging |
+| `src/lib/riotApi.js` | Abstracts all Riot API calls | Rate limiting, retries, parallel fetching, mastery API |
+| `src/lib/awsAi.js` | Abstracts AWS Bedrock calls | Prompt engineering, JSON parsing, mastery integration |
+| `src/app/api/summoner/route.js` | Fetches player data | Account + summoner + 20 matches |
+| `src/app/api/match/route.js` | Fetch additional matches | Pagination with `puuid`, `start`, `count` |
+| `src/app/api/mastery/route.js` | Fetch champion mastery | Top 40 champions by mastery points |
+| `src/app/api/champion-icon/route.js` | Proxy champion images | Avoids ORB/CORS, includes fallbacks |
+| `src/app/api/insights/route.js` | Generates AI insights | Includes match + mastery analysis |
+| `src/app/api/ai/route.js` | Poro dialogue responses | Interactive Q&A with Claude |
+| `src/app/page.js` | Main UI component | Search, mastery chart, match history, Poro |
+| `src/app/components/MasteryBubbleChart.jsx` | D3.js visualization | Packed bubble chart with tooltips |
+| `src/app/components/PoroAssistant.jsx` | Interactive mascot | Clickable Poro with animations |
+| `public/demo-data/*.json` | Pre-fetched demo data | 200 matches each for instant loading |
 
 ---
 
 ## 🎯 Features
 
-### ✅ Completed (Days 1-3)
-- [x] Riot API integration with parallel fetching
+### ✅ Core Features (Week 1)
+- [x] Riot API integration with parallel fetching (20+ concurrent requests)
 - [x] Summoner search (Riot ID format: `GameName#TAG`)
-- [x] Match history display (20 most recent matches)
+- [x] Match history display with detailed stats (KDA, CS, damage, vision, gold)
 - [x] AWS Bedrock integration (Claude 3.5 Haiku)
-- [x] AI-generated "Champion Personality" insight
-- [x] Demo account system (instant vs. live mode)
-- [x] Responsive UI with loading states
+- [x] AI-generated "Champion Personality" insight with nickname, strengths, weaknesses
+- [x] Demo account system (instant pre-loaded demos vs. live API fetch)
 - [x] Error handling & user feedback
 
-### ✅ Recently Added (This Update)
-- [x] Custom cursor: `hand1.png` globally; `hand2.png` on links/buttons
-- [x] Champion icons via CDN (CommunityDragon) using `championId` (no filename issues)
-- [x] Role icons shown in match rows from `public/lolAssets/lol/roles/*.png`
-- [x] Load More Matches button with on-demand pagination (no extra initial wait)
-- [x] New API: `GET /api/match` with `puuid`, `start`, `count`
-- [x] Caching of fetched matches in UI to avoid re-fetching
-- [x] Dev performance: moved large assets to CDN to speed up `npm run dev`
+### ✅ Visual & UX Improvements (Week 2)
+- [x] **Champion Image Proxy** - Server-side proxy at `/api/champion-icon` to avoid browser ORB/CORS blocking
+- [x] **Top Mastery Bubble Chart** - D3.js packed bubble visualization showing top 40 mastery champions
+  - Interactive hover tooltips with mastery points and levels
+  - Desktop: Fixed left sidebar (600px)
+  - Mobile: Responsive section below Champion Personality
+- [x] **Interactive Poro Assistant** - Clickable Poro that toggles dialogue visibility
+  - Desktop: Full size, bottom-right corner
+  - Mobile: 60% scaled, repositioned for better UX
+- [x] **Match History Auto-Open** - Recent matches section expanded by default
+- [x] **Mobile Responsive Design**:
+  - Stacked search form on mobile
+  - Responsive typography (3xl → 5xl on larger screens)
+  - Optimized padding and spacing
+  - Dialogue buttons stack vertically on mobile
+- [x] **Enhanced AI Insights** - Now analyzes both recent matches AND champion mastery data
+- [x] **Load More Matches** - On-demand pagination (20 matches at a time)
+- [x] **Champion Name Removal** - Cleaned up match cards for better readability
 
-### 🚧 In Progress (Week 2)
-- [ ] Additional AI insights:
-  - [ ] "Tilt Timeline" - Performance drop after losses
-  - [ ] "Win Conditions" - What factors lead to wins
-  - [ ] "Champion Pool Analysis" - Comfort picks vs. experiments
-- [ ] Data visualizations (win rate over time, champion distribution)
-- [ ] Shareable image cards (Spotify Wrapped style)
-- [ ] Deploy to Vercel with production environment
+### 🎨 Technical Improvements
+- [x] Custom image proxy with fallback URLs and edge caching
+- [x] ChampionId → ChampionName mapping from match data
+- [x] Robust JSON parsing with smart quote handling
+- [x] D3.js data validation to prevent pack layout errors
+- [x] ESLint config updated to allow `<img>` tags (using custom proxy)
+- [x] Demo accounts now fetch 200 matches instead of 20
+
+### 🚧 In Progress
+- [ ] Additional demo accounts for judging
 
 ### 📅 Planned (Week 3)
-- [ ] Mobile responsive design polish
-- [ ] Social sharing functionality
+- [ ] Shareable image cards (Spotify Wrapped style)
 - [ ] 3-minute demo video
-- [ ] Methodology write-up
-- [ ] Final bug fixes & testing
+- [ ] Final polish & testing
 
 ---
 
@@ -312,18 +345,17 @@ node src/app/api/test-bedrock.mjs
 node scripts/fetch-demo-accounts.mjs
 Manual Testing in Browser
 
-Demo Account Test:
+**Demo Account Test:**
+- Click "⚡ YinYatsui#NA1" button
+- Should load instantly (<1 second)
+- Should show 200 matches + AI insights
+- Should display mastery bubble chart immediately
 
-Click "⚡ Bosey#NA1" button
-Should load instantly (<1 second)
-Should show AI insights immediately
-
-
-Live Account Test:
-
-Search any summoner (e.g., Doublelift#NA1)
-Should show loading spinner
-Should fetch and display after ~15 seconds
+**Live Account Test:**
+- Search any summoner (e.g., `Doublelift#NA1`)
+- Should show loading spinner (~2-3 seconds for profile)
+- Match history appears, then AI analyzes (~7 seconds)
+- Mastery bubble chart loads on the left (desktop) or below personality (mobile)
 
 
 Error Handling Test:
@@ -387,82 +419,155 @@ Extra Tips:
 🏗️ Development Timeline
 DateMilestoneStatusOct 11Riot API integration, basic UI✅ CompleteOct 12AWS Bedrock setup, first AI insight✅ CompleteOct 13Demo accounts, UI polish✅ CompleteOct 14-17Additional insights, visualizations🚧 In ProgressOct 18-24Shareable cards, mobile responsive📅 PlannedOct 25-31Demo video, documentation📅 PlannedNov 1-10Final testing, buffer time📅 PlannedNov 10Submission Deadline (2pm PST)🎯 Goal
 
-📊 API Documentation
-GET /api/summoner
+## 📊 API Documentation
+
+### GET `/api/summoner`
 Fetches summoner profile and match history.
-Query Parameters:
 
-gameName (required): Summoner name
-tagLine (optional): Riot tag (default: "NA1")
+**Query Parameters:**
+- `gameName` (required): Summoner name
+- `tagLine` (optional): Riot tag (default: "NA1")
 
-Example Request:
+**Example:**
 ```bash
-curl "http://localhost:3000/api/summoner?gameName=Bosey&tagLine=NA1"
-Response:
+curl "http://localhost:3000/api/summoner?gameName=YinYatsui&tagLine=NA1"
+```
+
+**Response:**
 ```json
 {
   "success": true,
   "data": {
-    "account": {
-      "puuid": "kUq09WvyIRvweBBJlKiL4iNJMsSfutgx-L-01_mMTztMUsRpekASWoxxyYjbJu6ZzASRI2WOlqlhGA",
-      "gameName": "Bosey",
-      "tagLine": "NA1"
-    },
-    "summoner": {
-      "summonerLevel": 293
-    },
+    "account": { "puuid": "...", "gameName": "YinYatsui", "tagLine": "NA1" },
+    "summoner": { "id": "...", "summonerLevel": 293 },
     "matches": [ /* 20 match objects */ ]
   }
 }
+```
 
-GET /api/match
-Fetches additional matches (pagination) for an existing player by `puuid`.
+---
 
-Query Parameters:
+### GET `/api/match`
+Fetches additional matches (pagination).
 
+**Query Parameters:**
 - `puuid` (required): Player UUID
 - `start` (optional): Starting index (default: 20)
-- `count` (optional): Number of matches to fetch (default: 20; max ~100)
+- `count` (optional): Matches to fetch (default: 20, max: 100)
 
-Example Request:
-
+**Example:**
 ```bash
 curl "http://localhost:3000/api/match?puuid=PLAYER_PUUID&start=20&count=20"
 ```
 
-Response:
-
+**Response:**
 ```json
 {
   "success": true,
   "data": {
-    "matches": [ /* array of match objects */ ],
+    "matches": [ /* 20 match objects */ ],
     "hasMore": true
   }
 }
 ```
-POST /api/insights
-Generates AI insights from profile data.
-Request Body:
+
+---
+
+### GET `/api/mastery`
+Fetches top champion mastery for a summoner.
+
+**Query Parameters:**
+- `puuid` or `summonerId` (required): Player identifier
+- `count` (optional): Number of champions (default: 5, max: 200)
+- `platform` (optional): Platform (default: "NA1")
+
+**Example:**
+```bash
+curl "http://localhost:3000/api/mastery?puuid=PLAYER_PUUID&count=40&platform=NA1"
+```
+
+**Response:**
 ```json
 {
-  "account": { "puuid": "...", "gameName": "Bosey", "tagLine": "NA1" },
-  "summoner": { "summonerLevel": 293 },
-  "matches": [ /* array of match objects */ ]
+  "success": true,
+  "mastery": [
+    {
+      "championId": 157,
+      "championLevel": 7,
+      "championPoints": 1234567,
+      "chestGranted": true
+    }
+  ]
 }
-Response:
+```
+
+---
+
+### GET `/api/champion-icon`
+Proxies champion square icons from CommunityDragon CDN.
+
+**Query Parameters:**
+- `id` (required): Champion ID
+
+**Example:**
+```bash
+curl "http://localhost:3000/api/champion-icon?id=157"
+```
+
+**Response:** PNG image with cache headers
+
+---
+
+### POST `/api/insights`
+Generates AI "Champion Personality" from profile + mastery data.
+
+**Request Body:**
+```json
+{
+  "account": { "puuid": "...", "gameName": "YinYatsui" },
+  "summoner": { "summonerLevel": 293 },
+  "matches": [ /* match objects */ ],
+  "mastery": [ /* mastery objects */ ]
+}
+```
+
+**Response:**
 ```json
 {
   "success": true,
   "insights": {
     "title": "Champion Personality",
-    "nickname": "The Volatile Spellslinger",
-    "summary": "High-risk, medium-reward player...",
-    "strength": "Early game aggression is on point...",
-    "weakness": "Consistency is key! Focus on...",
-    "funFact": "Average game duration of 19 minutes..."
+    "nickname": "The Yasuo Specialist",
+    "summary": "A dedicated one-trick with incredible champion mastery...",
+    "strength": "1M+ mastery points on Yasuo shows deep mechanical skill...",
+    "weakness": "Expanding champion pool could improve flexibility...",
+    "funFact": "Average game duration of 28 minutes..."
   }
 }
+```
+
+---
+
+### POST `/api/ai`
+Powers the Poro assistant's conversational AI.
+
+**Request Body:**
+```json
+{
+  "kind": "more" | "improve" | "compare" | "surprise" | "custom" | "match" | "followups",
+  "profile": { /* profile data */ },
+  "question": "optional custom question",
+  "match": { /* specific match data */ }
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Poro's response text..."
+}
+```
 
 🤖 AI Context for Future Development
 Coding Conventions
@@ -616,11 +721,21 @@ Deployment checklist:
  Set up custom domain (optional)
 
 
-Last Updated: October 13, 2025
-Version: 0.1.0 (MVP)
-Status: 🚧 Active Development
+---
+
+**Last Updated:** October 15, 2025  
+**Version:** 0.2.0 (Feature Complete)  
+**Status:** 🚀 Ready for Demo
 
 Built with ❤️ and ☕ for the League community
+
+### Recent Updates (Oct 15)
+- ✨ Added interactive D3.js mastery bubble chart
+- 📱 Full mobile responsive design
+- 🐾 Clickable Poro assistant
+- 🎯 Champion mastery integration in AI insights
+- 🖼️ Server-side image proxy to fix ORB blocking
+- 📊 Enhanced to analyze 200 matches for demo accounts
 
 
 
