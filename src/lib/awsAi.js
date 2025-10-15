@@ -127,8 +127,9 @@ function formatMatchContext(match, playerPuuid) {
 
 /**
  * Build prompts for the dialogue assistant
+ * @param {boolean} includeFollowups - If true, asks Claude to include followup questions in response
  */
-export function buildDialoguePrompt(kind, profileData, extra) {
+export function buildDialoguePrompt(kind, profileData, extra, includeFollowups = true) {
   const baseSystem = 'You are a friendly Poro companion from League of Legends. Speak warmly, concisely, and naturally. Do not use roleplay actions or stage directions. Do not use asterisks. Avoid numbered or bulleted lists. Keep responses short and conversational.\n\nAdhere to the CURRENT PATCH CONTEXT strictly:\n' + PATCH_CONTEXT;
 
   const { account, summoner, matches } = profileData || {};
@@ -138,18 +139,23 @@ export function buildDialoguePrompt(kind, profileData, extra) {
 
   const preface = `Player: ${playerLine}\nMatches Available: ${matches?.length || 0}`;
 
+  // Followup suffix to append to main prompts
+  const followupSuffix = includeFollowups 
+    ? '\n\nAfter your response, suggest 3 short follow-up questions the user might ask (related to your answer and their data). Format: FOLLOWUPS: question1 | question2 | question3'
+    : '';
+
   const prompts = {
-    initial: `Give a warm, enthusiastic greeting (max 2–3 sentences). Be punchy and upbeat. Include their general playstyle personality. No asterisks, no roleplay actions, no lists.\n\n${preface}`,
-    more: `Explain their playstyle in a friendly tone (max 3–4 sentences). Focus on patterns in champions, roles, and combat style. Keep it conversational, no lists, no asterisks. Avoid specific item/rune recommendations unless explicitly provided as current.\n\n${preface}`,
-    improve: `Offer constructive, encouraging tips (max 3–4 sentences). Keep it practical and positive. No lists; flow naturally. No asterisks. Avoid specific build/item calls unless explicitly provided as current.\n\n${preface}`,
-    compare: `Briefly compare them to similar players (max 3–4 sentences). Keep it positive and actionable. No lists; conversational. No asterisks. Do not cite specific items unless provided as current.\n\n${preface}`,
-    surprise: `Share an interesting pattern or fun observation (max 3–4 sentences). Keep it playful, no lists, no asterisks.\n\n${preface}`,
-    custom: (extra?.question ? `Answer the user's question about their gameplay (max 3–4 sentences). Keep it specific to their data. No lists; conversational. No asterisks. If the question asks for item/build advice and no current items are provided, give general guidance and direct them to u.gg/op.gg for exact builds.\n\nQuestion: ${extra.question}\n\n${preface}` : `Answer the user's question briefly (max 3–4 sentences).\n\n${preface}`),
+    initial: `Give a warm, enthusiastic greeting (max 2–3 sentences). Be punchy and upbeat. Include their general playstyle personality. No asterisks, no roleplay actions, no lists.\n\n${preface}${followupSuffix}`,
+    more: `Explain their playstyle in a friendly tone (max 3–4 sentences). Focus on patterns in champions, roles, and combat style. Keep it conversational, no lists, no asterisks. Avoid specific item/rune recommendations unless explicitly provided as current.\n\n${preface}${followupSuffix}`,
+    improve: `Offer constructive, encouraging tips (max 3–4 sentences). Keep it practical and positive. No lists; flow naturally. No asterisks. Avoid specific build/item calls unless explicitly provided as current.\n\n${preface}${followupSuffix}`,
+    compare: `Briefly compare them to similar players (max 3–4 sentences). Keep it positive and actionable. No lists; conversational. No asterisks. Do not cite specific items unless provided as current.\n\n${preface}${followupSuffix}`,
+    surprise: `Share an interesting pattern or fun observation (max 3–4 sentences). Keep it playful, no lists, no asterisks.\n\n${preface}${followupSuffix}`,
+    custom: (extra?.question ? `Answer the user's question about their gameplay (max 3–4 sentences). Keep it specific to their data. No lists; conversational. No asterisks. If the question asks for item/build advice and no current items are provided, give general guidance and direct them to u.gg/op.gg for exact builds.\n\nQuestion: ${extra.question}\n\n${preface}${followupSuffix}` : `Answer the user's question briefly (max 3–4 sentences).\n\n${preface}${followupSuffix}`),
     match: (() => {
       const ctx = extra?.match && profileData?.account?.puuid
         ? formatMatchContext(extra.match, profileData.account.puuid)
         : null;
-      return `${ctx ? ctx + '\n\n' : ''}Analyze this specific match for the player above (max 3–4 sentences). Explain what went right or wrong and give one key takeaway to try next time. Be friendly and conversational. No lists, no asterisks.`;
+      return `${ctx ? ctx + '\n\n' : ''}Analyze this specific match for the player above (max 3–4 sentences). Explain what went right or wrong and give one key takeaway to try next time. Be friendly and conversational. No lists, no asterisks.${followupSuffix}`;
     })(),
     followups: (extra?.lastAnswer ? `Based on the assistant's last reply and the player's data, suggest three short follow-up questions the user might ask next. Keep them distinct and engaging. Output ONLY the three questions separated by the pipe character (|). No extra text.\n\nLast reply: ${extra.lastAnswer}\n\n${preface}` : `Suggest three short follow-up questions separated by | about the player's data. No extra text.\n\n${preface}`),
   };

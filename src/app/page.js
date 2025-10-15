@@ -274,21 +274,13 @@ export default function Home() {
       setDialogue(data.message);
       setTimeout(() => setPoroState('talking'), 400);
       lastAnswerRef.current = data.message || '';
-      // Fetch dynamic followups and replace options
-      try {
-        const f = await fetch('/api/ai', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ kind: 'followups', profile, lastAnswer: lastAnswerRef.current })
-        });
-        const fdata = await f.json();
-        if (f.ok && Array.isArray(fdata.followups) && fdata.followups.length) {
-          const mapped = fdata.followups.slice(0, 3).map((q, i) => ({ key: `followup-${i}`, label: q }));
-          setOptions([...mapped, { key: 'reset', label: 'Back to main options' }]);
-        } else {
-          setOptions(baseOptions);
-        }
-      } catch {
+      
+      // Use followups from the same response (no second API call!)
+      if (data.followups && Array.isArray(data.followups) && data.followups.length > 0) {
+        const mapped = data.followups.slice(0, 3).map((q, i) => ({ key: `followup-${i}`, label: q }));
+        setOptions([...mapped, { key: 'reset', label: 'Back to main options' }]);
+      } else {
+        // Fallback to base options if no followups provided
         setOptions(baseOptions);
       }
       // Estimate typewriter duration to return to idle after speaking
@@ -348,21 +340,13 @@ export default function Home() {
       setDialogue(data.message);
       setTimeout(() => setPoroState('talking'), 400);
       lastAnswerRef.current = data.message || '';
-      // dynamic followups
-      try {
-        const f = await fetch('/api/ai', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ kind: 'followups', profile, lastAnswer: lastAnswerRef.current })
-        });
-        const fdata = await f.json();
-        if (f.ok && Array.isArray(fdata.followups) && fdata.followups.length) {
-          const mapped = fdata.followups.slice(0, 3).map((q, i) => ({ key: `followup-${i}`, label: q }));
-          setOptions([...mapped, { key: 'reset', label: 'Back to main options' }]);
-        } else {
-          setOptions(baseOptions);
-        }
-      } catch {
+      
+      // Use followups from the same response (no second API call!)
+      if (data.followups && Array.isArray(data.followups) && data.followups.length > 0) {
+        const mapped = data.followups.slice(0, 3).map((q, i) => ({ key: `followup-${i}`, label: q }));
+        setOptions([...mapped, { key: 'reset', label: 'Back to main options' }]);
+      } else {
+        // Fallback to base options if no followups provided
         setOptions(baseOptions);
       }
       const messageLength = (data.message || '').length;
@@ -418,21 +402,13 @@ export default function Home() {
       setDialogue(data.message);
       setTimeout(() => setPoroState('talking'), 400);
       lastAnswerRef.current = data.message || '';
-      // optional followups for match context
-      try {
-        const f = await fetch('/api/ai', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ kind: 'followups', profile, lastAnswer: lastAnswerRef.current })
-        });
-        const fdata = await f.json();
-        if (f.ok && Array.isArray(fdata.followups) && fdata.followups.length) {
-          const mapped = fdata.followups.slice(0, 3).map((q, i) => ({ key: `followup-${i}`, label: q }));
-          setOptions([...mapped, { key: 'reset', label: 'Back to main options' }]);
-        } else {
-          setOptions(baseOptions);
-        }
-      } catch {
+      
+      // Use followups from the same response (no second API call!)
+      if (data.followups && Array.isArray(data.followups) && data.followups.length > 0) {
+        const mapped = data.followups.slice(0, 3).map((q, i) => ({ key: `followup-${i}`, label: q }));
+        setOptions([...mapped, { key: 'reset', label: 'Back to main options' }]);
+      } else {
+        // Fallback to base options if no followups provided
         setOptions(baseOptions);
       }
       const messageLength = (data.message || '').length;
