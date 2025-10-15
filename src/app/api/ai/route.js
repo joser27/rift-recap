@@ -22,9 +22,19 @@ export async function POST(request) {
 
     return NextResponse.json({ success: true, message: safe });
   } catch (error) {
-    console.error('AI Dialogue API Error:', error);
+    console.error('❌ AI Dialogue API Error:', error);
+    console.error('Error details:', {
+      name: error.name,
+      message: error.message,
+      code: error.$metadata?.httpStatusCode,
+      requestId: error.$metadata?.requestId
+    });
     return NextResponse.json(
-      { error: 'Failed to get AI response', message: error.message },
+      { 
+        error: 'Failed to get AI response', 
+        message: error.message,
+        details: error.name 
+      },
       { status: 500 }
     );
   }

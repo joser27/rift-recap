@@ -27,60 +27,84 @@ Response policy for builds/items:
 - Never fabricate or guess specific items.`;
 
 /**
- * Call Claude via AWS Bedrock
+ * Call Claude via AWS Bedrock with retry logic
  */
 export async function callClaude(prompt, options = {}) {
   const {
     model = CLAUDE_HAIKU,
     maxTokens = 2048,
     temperature = 0.7,
-    system = null
+    system = null,
+    retries = 2 // Default 2 retries for intermittent failures
   } = options;
 
-  try {
-    const payload = {
-      anthropic_version: "bedrock-2023-05-31",
-      max_tokens: maxTokens,
-      temperature: temperature,
-      messages: [
-        {
-          role: "user",
-          content: prompt
-        }
-      ]
-    };
+  let lastError;
 
-    if (system) {
-      payload.system = system;
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      const payload = {
+        anthropic_version: "bedrock-2023-05-31",
+        max_tokens: maxTokens,
+        temperature: temperature,
+        messages: [
+          {
+            role: "user",
+            content: prompt
+          }
+        ]
+      };
+
+      if (system) {
+        payload.system = system;
+      }
+
+      const command = new InvokeModelCommand({
+        modelId: model,
+        contentType: "application/json",
+        accept: "application/json",
+        body: JSON.stringify(payload),
+      });
+
+      console.log(`📡 Calling Claude (${model})... [attempt ${attempt + 1}/${retries + 1}]`);
+      const response = await client.send(command);
+      
+      const responseBody = JSON.parse(new TextDecoder().decode(response.body));
+      const text = responseBody.content[0].text;
+      
+      console.log('✅ Claude response received');
+      return text;
+
+    } catch (error) {
+      lastError = error;
+      console.error(`❌ Bedrock Error (attempt ${attempt + 1}):`, error.message);
+      console.error('Error details:', {
+        name: error.name,
+        code: error.$metadata?.httpStatusCode,
+        retryable: error.$retryable
+      });
+      
+      // Fallback to older model if needed
+      if (error.name === 'ValidationException' && model === CLAUDE_HAIKU) {
+        console.log('⚠️  Trying fallback model...');
+        return callClaude(prompt, { ...options, model: CLAUDE_3_HAIKU, retries: 0 });
+      }
+      
+      // Don't retry on certain errors
+      if (error.name === 'ValidationException' || error.name === 'AccessDeniedException') {
+        throw error;
+      }
+
+      // Wait before retrying (exponential backoff)
+      if (attempt < retries) {
+        const delay = Math.min(1000 * Math.pow(2, attempt), 5000); // Max 5 seconds
+        console.log(`⏳ Retrying in ${delay}ms...`);
+        await new Promise(resolve => setTimeout(resolve, delay));
+      }
     }
-
-    const command = new InvokeModelCommand({
-      modelId: model,
-      contentType: "application/json",
-      accept: "application/json",
-      body: JSON.stringify(payload),
-    });
-
-    console.log(`📡 Calling Claude (${model})...`);
-    const response = await client.send(command);
-    
-    const responseBody = JSON.parse(new TextDecoder().decode(response.body));
-    const text = responseBody.content[0].text;
-    
-    console.log('✅ Claude response received');
-    return text;
-
-  } catch (error) {
-    console.error('❌ Bedrock Error:', error.message);
-    
-    // Fallback to older model if needed
-    if (error.name === 'ValidationException' && model === CLAUDE_HAIKU) {
-      console.log('⚠️  Trying fallback model...');
-      return callClaude(prompt, { ...options, model: CLAUDE_3_HAIKU });
-    }
-    
-    throw error;
   }
+  
+  // All retries failed
+  throw lastError;
 }
 
 function formatMatchContext(match, playerPuuid) {

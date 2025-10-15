@@ -299,6 +299,12 @@ export default function Home() {
         setPoroState('idle');
       }, estimated);
     } catch (e) {
+      console.error('❌ Poro dialogue error:', e);
+      console.error('Error details:', {
+        message: e.message,
+        status: e.status,
+        response: e.response
+      });
       setPoroState('idle');
       setDialogue('Hmm... something went wrong. Want to try again?');
       setOptions(baseOptions);
@@ -366,6 +372,11 @@ export default function Home() {
         setPoroState('idle');
       }, estimated);
     } catch (e) {
+      console.error('❌ Poro free input error:', e);
+      console.error('Error details:', {
+        message: e.message,
+        question: question
+      });
       setPoroState('idle');
       setDialogue('Hmm... something went wrong. Want to try again?');
       setOptions(baseOptions);
@@ -431,6 +442,11 @@ export default function Home() {
         setPoroState('idle');
       }, estimated);
     } catch (e) {
+      console.error('❌ Poro match analysis error:', e);
+      console.error('Error details:', {
+        message: e.message,
+        matchId: match?.metadata?.matchId
+      });
       setPoroState('idle');
       setDialogue('Hmm... something went wrong. Want to try again?');
       setOptions(baseOptions);
