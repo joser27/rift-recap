@@ -574,11 +574,11 @@ export default function Home() {
             </p>
             <div className="flex gap-2 justify-center flex-wrap">
               <button
-                onClick={() => loadDemoAccount('Bosey', 'NA1')}
+                onClick={() => loadDemoAccount('YinYatsui', 'NA1')}
                 className="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg text-sm font-semibold transition flex items-center gap-2"
               >
                 <Zap size={16} />
-                Bosey#NA1
+                YinYatsui#NA1
                 <span className="text-xs text-blue-300">(instant)</span>
               </button>
               <button
