@@ -137,7 +137,20 @@ export function buildDialoguePrompt(kind, profileData, extra, includeFollowups =
     ? `${account.gameName}#${account.tagLine} (Level ${summoner.summonerLevel})`
     : 'Unknown Player';
 
-  const preface = `Player: ${playerLine}\nMatches Available: ${matches?.length || 0}`;
+  // Extract stats to give Claude context
+  let statsContext = '';
+  if (matches && matches.length > 0 && account?.puuid) {
+    const stats = extractMatchStats(matches, account.puuid);
+    const topChamps = stats.topChampions.map(c => `${c.name} (${c.games})`).join(', ');
+    statsContext = `\n\nRECENT PERFORMANCE:
+- Win Rate: ${stats.winRate}%
+- KDA: ${stats.kda} (${stats.avgKills}/${stats.avgDeaths}/${stats.avgAssists})
+- Top Champions: ${topChamps}
+- Main Role: ${stats.mainRole}
+- Games Analyzed: ${stats.totalGames}`;
+  }
+
+  const preface = `Player: ${playerLine}\nMatches Available: ${matches?.length || 0}${statsContext}`;
 
   // Followup suffix to append to main prompts
   const followupSuffix = includeFollowups 
