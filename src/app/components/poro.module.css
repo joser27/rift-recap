@@ -30,6 +30,20 @@
   filter: drop-shadow(0 6px 12px rgba(0,0,0,0.35));
 }
 
+.clickable {
+  cursor: pointer;
+  pointer-events: auto;
+  transition: transform 0.2s ease;
+}
+
+.clickable:hover {
+  transform: scale(1.05);
+}
+
+.clickable:active {
+  transform: scale(0.95);
+}
+
 .bounceIn {
   animation: poro-bounce-in 600ms ease-out;
 }

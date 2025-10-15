@@ -18,15 +18,12 @@ export default function MasteryBubbleChart({ mastery, getChampionIconSrc }) {
 
   useEffect(() => {
     if (!isReady || !mastery || mastery.length === 0 || !svgRef.current || !containerRef.current) {
-      console.log('MasteryBubbleChart: Not ready', { isReady, hasMastery: !!mastery, masteryLength: mastery?.length });
       return;
     }
 
     // Get actual container width and make it square
     const containerWidth = containerRef.current.clientWidth;
-    console.log('MasteryBubbleChart: Rendering with width', containerWidth, 'mastery count:', mastery.length);
     if (!containerWidth || containerWidth < 10) {
-      console.log('Container width invalid:', containerWidth);
       return;
     }
     const size = containerWidth; // Make it fill the full width

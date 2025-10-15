@@ -15,6 +15,7 @@ export default function PoroAssistant({
   state = 'idle',
   onAppear,
   showDialogue,
+  onPoroClick,
   frameWidth = 32,
   frameHeight = 32,
   scale = 3,
@@ -29,6 +30,12 @@ export default function PoroAssistant({
       if (onAppear) onAppear();
     }
   }, [hasBouncedIn, onAppear]);
+
+  const handlePoroClick = () => {
+    if (onPoroClick) {
+      onPoroClick();
+    }
+  };
 
   const mode = useMemo(() => {
     switch (state) {
@@ -61,9 +68,17 @@ export default function PoroAssistant({
     <div className={`${styles.poroWrapper} ${hasBouncedIn ? '' : styles.bounceIn} ${className || ''}`}>
       <div
         ref={spriteRef}
-        className={styles.poroSprite}
+        className={`${styles.poroSprite} ${styles.clickable}`}
         style={styleVars}
         aria-label={`Poro ${mode}`}
+        onClick={handlePoroClick}
+        role="button"
+        tabIndex={0}
+        onKeyPress={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            handlePoroClick();
+          }
+        }}
       />
       {showDialogue && (
         <div className={styles.dialogueContainer}>

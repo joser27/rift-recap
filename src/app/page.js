@@ -492,6 +492,24 @@ export default function Home() {
     }, 100);
   };
 
+  const handlePoroClick = () => {
+    // Simply toggle dialogue visibility
+    setDialogueVisible(!dialogueVisible);
+    
+    // Update Poro state based on visibility
+    if (dialogueVisible) {
+      // Hiding dialogue
+      setPoroState('idle');
+    } else {
+      // Showing dialogue
+      if (profile) {
+        setPoroState('talking');
+      } else {
+        setPoroState('talking');
+      }
+    }
+  };
+
   // Asset helpers
   const getChampionIconSrc = (championId) => {
     if (!championId) return '';
@@ -950,6 +968,7 @@ export default function Home() {
               onFreeSubmit={handleFreeSubmit}
             />
           ) : null}
+          onPoroClick={handlePoroClick}
           scale={9}
         />
         </div>
