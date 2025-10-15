@@ -6,6 +6,16 @@
   pointer-events: none;
 }
 
+/* Mobile: smaller poro, positioned lower */
+@media (max-width: 768px) {
+  .poroWrapper {
+    right: 12px;
+    bottom: 12px;
+    transform: scale(0.6);
+    transform-origin: bottom right;
+  }
+}
+
 .poroSprite {
   width: calc(var(--fw, 32px) * var(--scale, 3));
   height: calc(var(--fh, 32px) * var(--scale, 3));
@@ -44,6 +54,15 @@
   right: 46px;
   bottom: calc(var(--fh, 32px) * var(--scale, 3) + 120px);
   pointer-events: auto;
+}
+
+/* Mobile: adjust dialogue position for smaller poro */
+@media (max-width: 768px) {
+  .dialogueContainer {
+    right: 20px;
+    bottom: calc((var(--fh, 32px) * var(--scale, 3) * 0.6) + 140px);
+    max-width: calc(100vw - 40px);
+  }
 }
 
 

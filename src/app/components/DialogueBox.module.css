@@ -62,6 +62,14 @@
   margin-top: 12px;
 }
 
+/* Mobile: stack options vertically */
+@media (max-width: 768px) {
+  .options {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+}
+
 .btn {
   background: #2b2f3a;
   color: #e6edf3;

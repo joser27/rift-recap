@@ -8,12 +8,27 @@ export default function MasteryBubbleChart({ mastery, getChampionIconSrc }) {
   const svgRef = useRef(null);
   const containerRef = useRef(null);
   const [tooltip, setTooltip] = useState({ visible: false, x: 0, y: 0, data: null });
+  const [isReady, setIsReady] = useState(false);
+
+  // Wait for container to be ready
+  useEffect(() => {
+    const timer = setTimeout(() => setIsReady(true), 100);
+    return () => clearTimeout(timer);
+  }, []);
 
   useEffect(() => {
-    if (!mastery || mastery.length === 0 || !svgRef.current || !containerRef.current) return;
+    if (!isReady || !mastery || mastery.length === 0 || !svgRef.current || !containerRef.current) {
+      console.log('MasteryBubbleChart: Not ready', { isReady, hasMastery: !!mastery, masteryLength: mastery?.length });
+      return;
+    }
 
     // Get actual container width and make it square
     const containerWidth = containerRef.current.clientWidth;
+    console.log('MasteryBubbleChart: Rendering with width', containerWidth, 'mastery count:', mastery.length);
+    if (!containerWidth || containerWidth < 10) {
+      console.log('Container width invalid:', containerWidth);
+      return;
+    }
     const size = containerWidth; // Make it fill the full width
 
     // Clear previous render
@@ -25,22 +40,36 @@ export default function MasteryBubbleChart({ mastery, getChampionIconSrc }) {
       .attr('viewBox', `0 0 ${size} ${size}`);
 
     // Prepare data - use championPoints or games as value
-    const data = mastery.map(m => ({
-      ...m,
-      value: Math.max(m.championPoints || (m.games * 2000) || 500, 500),
-      id: m.championId
-    }));
+    // Filter out invalid entries and ensure minimum values
+    const data = mastery
+      .filter(m => m && (m.championId != null))
+      .map(m => ({
+        ...m,
+        value: Math.max(m.championPoints || (m.games * 2000) || 1000, 1000),
+        id: m.championId
+      }))
+      .slice(0, 40); // Limit to 40 champions max
+
+    // Ensure we have valid data
+    if (data.length === 0) return;
 
     // Create hierarchy for pack layout
     const root = d3.hierarchy({ children: data })
-      .sum(d => d.value);
+      .sum(d => d.value || 1000);
 
     // Create pack layout with full size
     const pack = d3.pack()
       .size([size, size])
-      .padding(4);
+      .padding(Math.max(2, size * 0.01)); // Responsive padding
 
-    const nodes = pack(root).leaves();
+    let nodes;
+    try {
+      nodes = pack(root).leaves();
+      if (!nodes || nodes.length === 0) return;
+    } catch (error) {
+      console.error('D3 pack error:', error);
+      return;
+    }
 
     // Color scale
     const colorScale = d3.scaleOrdinal()
@@ -127,15 +156,15 @@ export default function MasteryBubbleChart({ mastery, getChampionIconSrc }) {
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
 
-  }, [mastery, getChampionIconSrc]);
+  }, [isReady, mastery, getChampionIconSrc]);
 
   if (!mastery || mastery.length === 0) {
     return <p className="text-gray-500 text-sm">No mastery data</p>;
   }
 
   return (
-    <div ref={containerRef} className="w-full relative">
-      <svg ref={svgRef} className="drop-shadow-lg w-full h-auto"></svg>
+    <div ref={containerRef} className="w-full relative" style={{ minHeight: '400px' }}>
+      <svg ref={svgRef} className="drop-shadow-lg w-full h-auto" style={{ display: 'block' }}></svg>
       
       {/* Tooltip */}
       {tooltip.visible && tooltip.data && (

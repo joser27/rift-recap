@@ -60,21 +60,33 @@ export default function Home() {
 
   const computeTopFromMatches = (matches, playerPuuid) => {
     try {
+      if (!matches || !Array.isArray(matches) || matches.length === 0) return [];
+      if (!playerPuuid) return [];
+      
       const counts = new Map();
-      (matches || []).forEach(m => {
+      matches.forEach(m => {
         const p = m?.info?.participants?.find(x => x.puuid === playerPuuid);
         if (p && p.championId != null) {
           const champIdNum = Number(p.championId);
-          if (!Number.isNaN(champIdNum)) {
+          if (!Number.isNaN(champIdNum) && champIdNum > 0) {
             counts.set(champIdNum, (counts.get(champIdNum) || 0) + 1);
           }
         }
       });
-      return Array.from(counts.entries())
+      
+      const result = Array.from(counts.entries())
         .sort((a, b) => b[1] - a[1])
         .slice(0, 40)
-        .map(([championId, games]) => ({ championId, championPoints: null, championLevel: null, games }));
-    } catch {
+        .map(([championId, games]) => ({ 
+          championId: Number(championId), 
+          championPoints: null, 
+          championLevel: null, 
+          games: Number(games) 
+        }));
+      
+      return result;
+    } catch (error) {
+      console.error('computeTopFromMatches error:', error);
       return [];
     }
   };
@@ -119,6 +131,9 @@ export default function Home() {
     // Reset load more state
     setAllMatches([]);
     setHasMoreMatches(true);
+    // Reset mastery state
+    setMastery([]);
+    setMasteryLoading(false);
 
     try {
       // Check if this is a demo account first
@@ -505,9 +520,9 @@ export default function Home() {
   };
 
   return (
-    <main className="min-h-screen bg-gradient-to-b from-gray-900 to-gray-800 text-white p-8">
+    <main className="min-h-screen bg-gradient-to-b from-gray-900 to-gray-800 text-white p-4 md:p-8">
       <div className="max-w-7xl mx-auto relative">
-        {/* Left Sidebar: Top Mastery - Large bubble chart */}
+        {/* Left Sidebar: Top Mastery - Large bubble chart (Desktop only) */}
         {profile && (
           <aside className="hidden lg:block fixed left-8 top-24 w-[600px] z-10">
             <div className="p-6">
@@ -518,11 +533,15 @@ export default function Home() {
                 <div className="flex items-center justify-center" style={{ height: '600px' }}>
                   <p className="text-gray-400 text-center">Loading...</p>
                 </div>
-              ) : (
+              ) : mastery && mastery.length > 0 ? (
                 <MasteryBubbleChart 
                   mastery={mastery} 
                   getChampionIconSrc={getChampionIconSrc}
                 />
+              ) : (
+                <div className="flex items-center justify-center" style={{ height: '600px' }}>
+                  <p className="text-gray-400 text-center">No mastery data available</p>
+                </div>
               )}
             </div>
           </aside>
@@ -530,19 +549,19 @@ export default function Home() {
         
         {/* Main Content - Centered */}
         <div className="max-w-4xl mx-auto">
-        <h1 className="text-5xl font-bold text-center mb-4 bg-gradient-to-r from-blue-400 to-purple-600 bg-clip-text text-transparent">
+        <h1 className="text-3xl md:text-5xl font-bold text-center mb-4 bg-gradient-to-r from-blue-400 to-purple-600 bg-clip-text text-transparent">
           Rift Rewind
         </h1>
-        <p className="text-center text-gray-400 mb-8 text-lg">
+        <p className="text-center text-gray-400 mb-8 text-base md:text-lg">
           Your Season, Your Story - Powered by AI
         </p>
 
         {/* Search Form */}
-        <form onSubmit={handleSearch} className="bg-gray-800 rounded-lg p-6 shadow-lg mb-6">
-          <div className="flex gap-4">
+        <form onSubmit={handleSearch} className="bg-gray-800 rounded-lg p-4 md:p-6 shadow-lg mb-6">
+          <div className="flex flex-col md:flex-row gap-3 md:gap-4">
             <input
               type="text"
-              placeholder="Summoner Name (e.g., Bosey)"
+              placeholder="Summoner Name (e.g., YinYatsui)"
               value={gameName}
               onChange={(e) => setGameName(e.target.value)}
               className="flex-1 px-4 py-3 bg-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-white placeholder-gray-400"
@@ -553,7 +572,7 @@ export default function Home() {
               placeholder="Tag (e.g., NA1)"
               value={tagLine}
               onChange={(e) => setTagLine(e.target.value.toUpperCase())}
-              className="w-32 px-4 py-3 bg-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-white placeholder-gray-400"
+              className="md:w-32 px-4 py-3 bg-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-white placeholder-gray-400"
             />
             <button
               type="submit"
@@ -572,7 +591,7 @@ export default function Home() {
               <Zap size={16} className="text-blue-400" />
               Try a demo account for instant results:
             </p>
-            <div className="flex gap-2 justify-center flex-wrap">
+            <div className="flex flex-col md:flex-row gap-2 justify-center">
               <button
                 onClick={() => loadDemoAccount('YinYatsui', 'NA1')}
                 className="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg text-sm font-semibold transition flex items-center gap-2"
@@ -682,6 +701,31 @@ export default function Home() {
                 {insights.funFact && (
                   <div className="bg-yellow-900/20 border-l-4 border-yellow-500 p-4">
                     <p className="text-yellow-300"><strong>✨ Fun Fact:</strong> {insights.funFact}</p>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Top Mastery - Mobile version (below Champion Personality) */}
+            {profile && (
+              <div className="block lg:hidden bg-gray-800 rounded-lg p-4 md:p-6 shadow-lg">
+                <h3 className="text-xl md:text-2xl font-bold mb-4 text-center bg-gradient-to-r from-blue-400 to-purple-600 bg-clip-text text-transparent">
+                  Top Mastery
+                </h3>
+                {masteryLoading ? (
+                  <div className="flex items-center justify-center" style={{ height: '400px' }}>
+                    <p className="text-gray-400 text-center">Loading mastery data...</p>
+                  </div>
+                ) : mastery && mastery.length > 0 ? (
+                  <div className="w-full">
+                    <MasteryBubbleChart 
+                      mastery={mastery} 
+                      getChampionIconSrc={getChampionIconSrc}
+                    />
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-center" style={{ height: '400px' }}>
+                    <p className="text-gray-400 text-center">No mastery data available</p>
                   </div>
                 )}
               </div>
