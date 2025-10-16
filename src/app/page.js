@@ -172,6 +172,9 @@ export default function Home() {
         throw new Error(data.error || 'Failed to fetch');
       }
 
+      console.log('📊 Profile data received:', data.data);
+      console.log('🏆 Ranked stats:', data.data.rankedStats);
+      
       setProfile(data.data);
       setAllMatches(data.data.matches); // Initialize cache with first 20
       setHasMoreMatches(data.data.matches.length === 20); // If we got 20, there might be more
@@ -669,14 +672,80 @@ export default function Home() {
             )}
 
             {/* Player Card */}
-            <div className="bg-gradient-to-r from-gray-800 to-gray-700 rounded-lg p-6 shadow-lg border border-gray-600">
-              <h2 className="text-3xl font-bold mb-2">
-                {profile.account.gameName}
-                <span className="text-gray-400">#{profile.account.tagLine}</span>
-              </h2>
-              <div className="flex gap-6 text-gray-300">
-                <p>Level: <span className="text-blue-400 font-semibold">{profile.summoner.summonerLevel}</span></p>
-                <p>Matches Analyzed: <span className="text-purple-400 font-semibold">{profile.matches.length}</span></p>
+            <div className="bg-gradient-to-r from-gray-800 to-gray-700 rounded-lg p-4 md:p-6 shadow-lg border border-gray-600">
+              <div className="flex items-center gap-4 md:gap-6">
+                {/* Ranked Emblem */}
+                {(() => {
+                  if (!profile.rankedStats || profile.rankedStats.length === 0) {
+                    return null;
+                  }
+                  
+                  const soloQueue = profile.rankedStats.find(r => r.queueType === 'RANKED_SOLO_5x5');
+                  const flexQueue = profile.rankedStats.find(r => r.queueType === 'RANKED_FLEX_SR');
+                  const ranked = soloQueue || flexQueue;
+                  
+                  return ranked ? (
+                    <div className="shrink-0">
+                      <img
+                        src={`/api/ranked-emblem?tier=${ranked.tier}`}
+                        alt={`${ranked.tier} ${ranked.rank}`}
+                        className="w-16 h-16 md:w-20 md:h-20"
+                        onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                      />
+                    </div>
+                  ) : null;
+                })()}
+                
+                {/* Player Info */}
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-baseline gap-2 mb-2">
+                    <h2 className="text-xl sm:text-2xl md:text-3xl font-bold truncate">
+                      {profile.account.gameName}
+                      <span className="text-gray-400">#{profile.account.tagLine}</span>
+                    </h2>
+                    {profile.rankedStats && profile.rankedStats.length > 0 && (() => {
+                      const soloQueue = profile.rankedStats.find(r => r.queueType === 'RANKED_SOLO_5x5');
+                      const flexQueue = profile.rankedStats.find(r => r.queueType === 'RANKED_FLEX_SR');
+                      const ranked = soloQueue || flexQueue;
+                      return ranked ? (
+                        <span className="text-xs sm:text-sm font-semibold text-yellow-400 shrink-0">
+                          {ranked.tier.charAt(0) + ranked.tier.slice(1).toLowerCase()} {ranked.rank}
+                        </span>
+                      ) : null;
+                    })()}
+                  </div>
+                  
+                  <div className="flex flex-wrap gap-3 md:gap-5 text-xs sm:text-sm text-gray-300">
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-gray-400">Level</span>
+                      <span className="text-blue-400 font-semibold">{profile.summoner.summonerLevel}</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-gray-400">Matches</span>
+                      <span className="text-purple-400 font-semibold">{profile.matches.length}</span>
+                    </div>
+                    {profile.rankedStats && profile.rankedStats.length > 0 && (() => {
+                      const soloQueue = profile.rankedStats.find(r => r.queueType === 'RANKED_SOLO_5x5');
+                      return soloQueue ? (
+                        <>
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-gray-400">LP</span>
+                            <span className="text-yellow-400 font-semibold">{soloQueue.leaguePoints}</span>
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-gray-400">W/L</span>
+                            <span className="text-green-400 font-semibold">{soloQueue.wins}</span>
+                            <span className="text-gray-500">/</span>
+                            <span className="text-red-400 font-semibold">{soloQueue.losses}</span>
+                            <span className="text-gray-500 text-xs">
+                              ({((soloQueue.wins / (soloQueue.wins + soloQueue.losses)) * 100).toFixed(0)}%)
+                            </span>
+                          </div>
+                        </>
+                      ) : null;
+                    })()}
+                  </div>
+                </div>
               </div>
             </div>
 

@@ -73,6 +73,21 @@ export async function getAccountByRiotId(gameName, tagLine = 'NA1', region = REG
 // Get summoner data by PUUID
 export async function getSummonerByPuuid(puuid, platform = PLATFORMS.NA1) {
   const url = `https://${platform}.api.riotgames.com/lol/summoner/v4/summoners/by-puuid/${puuid}`;
+  const result = await riotRequest(url);
+  console.log('Raw summoner API response:', JSON.stringify(result, null, 2));
+  return result;
+}
+
+// Get ranked data for a summoner (by encrypted summoner ID)
+export async function getRankedStats(summonerId, platform = PLATFORMS.NA1) {
+  const url = `https://${platform}.api.riotgames.com/lol/league/v4/entries/by-summoner/${summonerId}`;
+  return await riotRequest(url);
+}
+
+// Get ranked data by PUUID (newer endpoint, not all regions support it yet)
+export async function getRankedStatsByPuuid(puuid, platform = PLATFORMS.NA1) {
+  // Note: This endpoint might not be available in all regions
+  const url = `https://${platform}.api.riotgames.com/lol/league/v4/entries/by-puuid/${puuid}`;
   return await riotRequest(url);
 }
 
@@ -127,6 +142,30 @@ export async function getPlayerProfile(gameName, tagLine = 'NA1') {
   
   // Get summoner data
   const summoner = await getSummonerByPuuid(puuid);
+  console.log('Summoner object:', summoner);
+  
+  // Get ranked stats (try, but don't fail if unavailable)
+  let rankedStats = null;
+  try {
+    // Try PUUID-based endpoint first (newer, more reliable)
+    console.log(`Fetching ranked stats for PUUID...`);
+    try {
+      rankedStats = await getRankedStatsByPuuid(puuid);
+      console.log(`✅ Ranked stats fetched via PUUID:`, rankedStats);
+    } catch (puuidError) {
+      // If PUUID endpoint fails, try encrypted summoner ID (if available)
+      const summonerId = summoner.id || summoner.summonerId;
+      if (summonerId) {
+        console.log(`Trying with summoner ID: ${summonerId}...`);
+        rankedStats = await getRankedStats(summonerId);
+        console.log(`✅ Ranked stats fetched via ID:`, rankedStats);
+      } else {
+        throw new Error('No summoner ID or PUUID endpoint available');
+      }
+    }
+  } catch (e) {
+    console.log('❌ No ranked data available or error fetching:', e.message);
+  }
   
   // Get match IDs (start with 20)
   const matchIds = await getMatchIds(puuid, 20, 0);
@@ -137,6 +176,7 @@ export async function getPlayerProfile(gameName, tagLine = 'NA1') {
   return {
     account,
     summoner,
+    rankedStats,
     matches
   };
 }
