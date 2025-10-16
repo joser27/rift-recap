@@ -469,7 +469,14 @@ export default function Home() {
       
     } catch (err) {
       console.error('Load more error:', err);
-      // Don't break the UI, just log the error
+      // If we hit a 404 or "Not found", it means there are no more matches
+      if (err.message.includes('Not found') || err.message.includes('404')) {
+        setHasMoreMatches(false);
+        console.log('No more matches available for this player');
+      } else {
+        // For other errors, show a message but don't hide the button
+        console.error('Failed to load more matches:', err.message);
+      }
     } finally {
       setLoadingMoreMatches(false);
     }
@@ -768,120 +775,220 @@ export default function Home() {
                   return (
                     <div
                       key={match.metadata.matchId}
-                      className={`p-4 rounded-lg transition hover:scale-[1.02] ${
+                      className={`p-3 md:p-4 rounded-lg transition hover:scale-[1.01] ${
                         participant.win 
                           ? 'bg-blue-900/30 border border-blue-500/30' 
                           : 'bg-red-900/30 border border-red-500/30'
                       }`}
                     >
-                      <div className="flex justify-between items-center">
-                        <div className="flex items-center gap-4">
+                      {/* Mobile & Desktop Layout */}
+                      <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-3">
+                        {/* Left: Champion & Stats */}
+                        <div className="flex items-center gap-2 md:gap-3">
+                          {/* Champion Icon */}
                           <img
                             src={getChampionIconSrc(participant.championId)}
                             alt={`${participant.championName} icon`}
-                            className="w-12 h-12 rounded-md object-cover shrink-0"
+                            className="w-12 h-12 md:w-14 md:h-14 rounded-md object-cover shrink-0"
                             loading="lazy"
                             onError={(e) => { e.currentTarget.style.display = 'none'; }}
                           />
-                          <span className="text-gray-300">
-                            {participant.kills}/{participant.deaths}/{participant.assists}
-                          </span>
-                          <span className="text-sm text-gray-400">
-                            KDA: {kdaRatio}
-                          </span>
-                          <span className="text-sm text-gray-400 inline-flex items-center gap-1">
+                          
+                          {/* Summoner Spells */}
+                          <div className="flex flex-col gap-0.5">
                             <img
-                              src={getRoleIconSrc(role)}
-                              alt={`${role} icon`}
-                              className="w-4 h-4 inline-block"
-                              onError={(e) => { e.currentTarget.style.visibility = 'hidden'; }}
+                              src={`/api/summoner-spell?id=${participant.summoner1Id}`}
+                              alt="Spell 1"
+                              className="w-5 h-5 md:w-6 md:h-6 rounded"
+                              loading="lazy"
+                              onError={(e) => { e.currentTarget.style.display = 'none'; }}
                             />
-                            Role: {role}
-                          </span>
+                            <img
+                              src={`/api/summoner-spell?id=${participant.summoner2Id}`}
+                              alt="Spell 2"
+                              className="w-5 h-5 md:w-6 md:h-6 rounded"
+                              loading="lazy"
+                              onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                            />
+                          </div>
+                          
+                          {/* KDA & Role */}
+                          <div className="flex flex-col gap-1">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="text-gray-200 font-semibold text-sm md:text-base">
+                                {participant.kills}/{participant.deaths}/{participant.assists}
+                              </span>
+                              <span className="text-xs text-gray-400">
+                                {kdaRatio} KDA
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-1.5 text-xs text-gray-400">
+                              <img
+                                src={getRoleIconSrc(role)}
+                                alt={`${role} icon`}
+                                className="w-3 h-3 md:w-4 md:h-4 inline-block"
+                                onError={(e) => { e.currentTarget.style.visibility = 'hidden'; }}
+                              />
+                              <span>{role}</span>
+                            </div>
+                          </div>
+                          
+                          {/* Items */}
+                          <div className="hidden sm:grid grid-cols-4 gap-0.5 ml-2">
+                            {[0, 1, 2, 3, 4, 5, 6].map((slot) => {
+                              const itemId = participant[`item${slot}`];
+                              return itemId ? (
+                                <img
+                                  key={slot}
+                                  src={`/api/item-icon?id=${itemId}`}
+                                  alt={`Item ${slot}`}
+                                  className="w-6 h-6 md:w-7 md:h-7 rounded border border-gray-700"
+                                  loading="lazy"
+                                  onError={(e) => { e.currentTarget.style.opacity = '0.3'; }}
+                                />
+                              ) : (
+                                <div key={slot} className="w-6 h-6 md:w-7 md:h-7 bg-gray-800/50 rounded border border-gray-700/50" />
+                              );
+                            })}
+                          </div>
                         </div>
-                        <div className="text-right">
-                          <span className={`font-semibold ${participant.win ? 'text-blue-400' : 'text-red-400'}`}>
-                            {participant.win ? 'Victory' : 'Defeat'}
-                          </span>
-                          <p className="text-sm text-gray-400">
-                            {Math.floor(match.info.gameDuration / 60)}m {match.info.gameDuration % 60}s
-                          </p>
+                        
+                        {/* Right: Result & Duration */}
+                        <div className="flex items-center justify-between md:flex-col md:items-end gap-2">
+                          <div className="flex flex-col md:items-end">
+                            <span className={`font-bold text-sm md:text-base ${participant.win ? 'text-blue-400' : 'text-red-400'}`}>
+                              {participant.win ? 'Victory' : 'Defeat'}
+                            </span>
+                            <span className="text-xs md:text-sm text-gray-400">
+                              {Math.floor(match.info.gameDuration / 60)}m {match.info.gameDuration % 60}s
+                            </span>
+                          </div>
                           <button
                             onClick={() => handleAskMatch(match)}
-                            className="mt-2 inline-flex items-center gap-2 text-blue-300 hover:text-blue-200 underline-offset-2 hover:underline"
+                            className="inline-flex items-center gap-1.5 text-xs md:text-sm text-blue-300 hover:text-blue-200 underline-offset-2 hover:underline whitespace-nowrap"
                           >
-                            <PawPrint size={16} />
-                            Ask Poro about this game
+                            <PawPrint size={14} className="md:w-4 md:h-4" />
+                            <span className="hidden sm:inline">Ask Poro about this game</span>
+                            <span className="sm:hidden">Ask Poro</span>
                           </button>
                         </div>
                       </div>
-                      <div className="mt-3 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3 text-sm text-gray-300">
-                        <div className="bg-black/20 rounded px-2 py-1 border border-white/5">
-                          <span className="text-gray-400">CS:</span> {cs} <span className="text-gray-400">({csPerMin}/m)</span>
+                      
+                      {/* Items (Mobile Only - Below Stats) */}
+                      <div className="sm:hidden mt-3 flex items-center gap-2">
+                        <span className="text-xs text-gray-400 shrink-0">Items:</span>
+                        <div className="flex gap-1 overflow-x-auto">
+                          {[0, 1, 2, 3, 4, 5, 6].map((slot) => {
+                            const itemId = participant[`item${slot}`];
+                            return itemId ? (
+                              <img
+                                key={slot}
+                                src={`/api/item-icon?id=${itemId}`}
+                                alt={`Item ${slot}`}
+                                className="w-7 h-7 rounded border border-gray-700 shrink-0"
+                                loading="lazy"
+                                onError={(e) => { e.currentTarget.style.opacity = '0.3'; }}
+                              />
+                            ) : (
+                              <div key={slot} className="w-7 h-7 bg-gray-800/50 rounded border border-gray-700/50 shrink-0" />
+                            );
+                          })}
                         </div>
-                        <div className="bg-black/20 rounded px-2 py-1 border border-white/5">
+                      </div>
+                      
+                      {/* Stats Grid */}
+                      <div className="mt-3 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2 text-xs md:text-sm text-gray-300">
+                        <div className="bg-black/20 rounded px-2 py-1.5 border border-white/5">
+                          <span className="text-gray-400">CS:</span> {cs} <span className="text-gray-500 text-xs">({csPerMin}/m)</span>
+                        </div>
+                        <div className="bg-black/20 rounded px-2 py-1.5 border border-white/5">
                           <span className="text-gray-400">KP:</span> {killParticipation}%
                         </div>
-                        <div className="bg-black/20 rounded px-2 py-1 border border-white/5">
+                        <div className="bg-black/20 rounded px-2 py-1.5 border border-white/5 truncate">
                           <span className="text-gray-400">Dmg:</span> {damage?.toLocaleString?.() || damage}
                         </div>
-                        <div className="bg-black/20 rounded px-2 py-1 border border-white/5">
+                        <div className="bg-black/20 rounded px-2 py-1.5 border border-white/5">
                           <span className="text-gray-400">Vision:</span> {visionScore}
                         </div>
-                        <div className="bg-black/20 rounded px-2 py-1 border border-white/5">
+                        <div className="bg-black/20 rounded px-2 py-1.5 border border-white/5 truncate">
                           <span className="text-gray-400">Gold:</span> {gold?.toLocaleString?.() || gold}
                         </div>
                       </div>
 
-                      {/* Players and raw data expanders */}
+                      {/* Players expander */}
                       <div className="mt-3 space-y-2">
                         <details className="bg-black/10 rounded border border-white/5">
-                          <summary className="cursor-pointer px-3 py-2 text-sm text-gray-200 hover:text-white">View all players</summary>
-                          <div className="px-3 pb-3">
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <summary className="cursor-pointer px-3 py-2 text-xs md:text-sm text-gray-200 hover:text-white">View all players</summary>
+                          <div className="px-2 md:px-3 pb-3 pt-2">
+                            {/* Stacked teams on mobile, side-by-side on desktop */}
+                            <div className="flex flex-col md:grid md:grid-cols-2 gap-3 md:gap-4">
                               {([100, 200]).map((teamId) => {
                                 const team = match.info.participants.filter(p => p.teamId === teamId);
                                 return (
-                                  <div key={teamId} className="bg-black/20 rounded p-3 border border-white/5">
-                                    <div className="font-semibold mb-3 text-gray-300 flex items-center gap-2">
+                                  <div key={teamId} className="bg-black/20 rounded p-2 md:p-3 border border-white/5">
+                                    <div className="font-semibold mb-2 text-xs md:text-sm text-gray-300 flex items-center gap-2">
                                       <span className={`inline-block w-2 h-2 rounded-full ${teamId === 100 ? 'bg-blue-400' : 'bg-red-400'}`}></span>
                                       Team {teamId === 100 ? 'Blue' : 'Red'}
                                     </div>
-                                    <div className="grid grid-cols-6 gap-2 text-xs uppercase tracking-wide text-gray-400 px-2 pb-1">
+                                    {/* Header - hidden on mobile, shown on desktop */}
+                                    <div className="hidden md:grid grid-cols-6 gap-2 text-xs uppercase tracking-wide text-gray-400 px-2 pb-1">
                                       <div className="col-span-2">Player</div>
                                       <div className="text-center">K/D/A</div>
                                       <div className="text-center">CS</div>
                                       <div className="text-right">Gold</div>
                                       <div className="text-right">Dmg</div>
                                     </div>
-                                    <div className="divide-y divide-white/5 rounded overflow-hidden">
+                                    <div className="space-y-1 md:divide-y md:divide-white/5">
                                       {team.map((p) => {
                                         const csP = (p.totalMinionsKilled || 0) + (p.neutralMinionsKilled || 0);
                                         return (
-                                          <div key={p.puuid} className="grid grid-cols-6 gap-2 text-sm text-gray-200 px-2 py-1 bg-white/5/0 hover:bg-white/5/10">
-                                            <div className="col-span-2 flex items-center gap-2 min-w-0">
-                                              <img
-                                                src={getChampionIconSrc(p.championId)}
-                                                alt={`${p.championName} icon`}
-                                                className="w-6 h-6 rounded object-cover shrink-0"
-                                                loading="lazy"
-                                                onError={(e) => { e.currentTarget.style.display = 'none'; }}
-                                              />
-                                              <span className="font-semibold truncate" title={p.summonerName || p.riotIdGameName || 'Unknown'}>
-                                                {p.summonerName || p.riotIdGameName || 'Unknown'}
-                                              </span>
+                                          <div key={p.puuid} className="md:grid md:grid-cols-6 md:gap-2 text-xs md:text-sm text-gray-200 px-1 md:px-2 py-1.5 md:py-1 hover:bg-white/5 rounded md:rounded-none">
+                                            {/* Mobile: Compact horizontal layout */}
+                                            <div className="flex md:hidden items-center justify-between gap-2">
+                                              <div className="flex items-center gap-2 min-w-0 flex-1">
+                                                <img
+                                                  src={getChampionIconSrc(p.championId)}
+                                                  alt={`${p.championName} icon`}
+                                                  className="w-5 h-5 rounded object-cover shrink-0"
+                                                  loading="lazy"
+                                                  onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                                                />
+                                                <span className="font-semibold truncate text-xs" title={p.summonerName || p.riotIdGameName || 'Unknown'}>
+                                                  {(p.summonerName || p.riotIdGameName || 'Unknown').split(' ')[0]}
+                                                </span>
+                                              </div>
+                                              <div className="flex items-center gap-3 text-xs shrink-0">
+                                                <span className="text-gray-300">{p.kills}/{p.deaths}/{p.assists}</span>
+                                                <span className="text-gray-400">{csP} CS</span>
+                                              </div>
                                             </div>
-                                            <div className="text-center text-gray-300">
-                                              {p.kills}/{p.deaths}/{p.assists}
-                                            </div>
-                                            <div className="text-center text-gray-400">
-                                              {csP}
-                                            </div>
-                                            <div className="text-right text-gray-400">
-                                              {p.goldEarned?.toLocaleString?.() || p.goldEarned}
-                                            </div>
-                                            <div className="text-right text-gray-400">
-                                              {p.totalDamageDealtToChampions?.toLocaleString?.() || p.totalDamageDealtToChampions}
+                                            
+                                            {/* Desktop: Table layout */}
+                                            <div className="hidden md:contents">
+                                              <div className="col-span-2 flex items-center gap-2 min-w-0">
+                                                <img
+                                                  src={getChampionIconSrc(p.championId)}
+                                                  alt={`${p.championName} icon`}
+                                                  className="w-6 h-6 rounded object-cover shrink-0"
+                                                  loading="lazy"
+                                                  onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                                                />
+                                                <span className="font-semibold truncate" title={p.summonerName || p.riotIdGameName || 'Unknown'}>
+                                                  {p.summonerName || p.riotIdGameName || 'Unknown'}
+                                                </span>
+                                              </div>
+                                              <div className="text-center text-gray-300">
+                                                {p.kills}/{p.deaths}/{p.assists}
+                                              </div>
+                                              <div className="text-center text-gray-400">
+                                                {csP}
+                                              </div>
+                                              <div className="text-right text-gray-400 truncate">
+                                                {(p.goldEarned / 1000).toFixed(1)}k
+                                              </div>
+                                              <div className="text-right text-gray-400 truncate">
+                                                {(p.totalDamageDealtToChampions / 1000).toFixed(1)}k
+                                              </div>
                                             </div>
                                           </div>
                                         );
