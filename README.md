@@ -79,12 +79,14 @@ rift-recap/
 ├── src/
 │   ├── app/                    # Next.js App Router (Pages + API)
 │   │   ├── api/                # Serverless API routes
-│   │   │   ├── summoner/route.js    # GET: Fetch summoner + 20 matches
-│   │   │   ├── match/route.js       # GET: Pagination (start/count params)
-│   │   │   ├── insights/route.js    # POST: Generate AI insights
-│   │   │   ├── mastery/route.js     # GET: Fetch top champion mastery
+│   │   │   ├── summoner/route.js      # GET: Fetch summoner + 20 matches
+│   │   │   ├── match/route.js         # GET: Pagination (start/count params)
+│   │   │   ├── insights/route.js      # POST: Generate AI insights
+│   │   │   ├── mastery/route.js       # GET: Fetch top champion mastery
 │   │   │   ├── champion-icon/route.js # GET: Proxy champion images
-│   │   │   └── ai/route.js          # POST: Poro dialogue responses
+│   │   │   ├── item-icon/route.js     # GET: Proxy item images (Data Dragon)
+│   │   │   ├── summoner-spell/route.js # GET: Proxy spell images with ID mapping
+│   │   │   └── ai/route.js            # POST: Poro dialogue with combined followups
 │   │   │
 │   │   ├── components/         # React components
 │   │   │   ├── PoroAssistant.jsx     # Interactive Poro sprite
@@ -129,8 +131,10 @@ rift-recap/
 | `src/app/api/match/route.js` | Fetch additional matches | Pagination with `puuid`, `start`, `count` |
 | `src/app/api/mastery/route.js` | Fetch champion mastery | Top 40 champions by mastery points |
 | `src/app/api/champion-icon/route.js` | Proxy champion images | Avoids ORB/CORS, includes fallbacks |
+| `src/app/api/item-icon/route.js` | Proxy item images | Data Dragon v15.20.1, transparent placeholders |
+| `src/app/api/summoner-spell/route.js` | Proxy summoner spell images | ID→name mapping, supports ARAM/Arena |
 | `src/app/api/insights/route.js` | Generates AI insights | Includes match + mastery analysis |
-| `src/app/api/ai/route.js` | Poro dialogue responses | Interactive Q&A with Claude |
+| `src/app/api/ai/route.js` | Poro dialogue responses | Interactive Q&A with Claude, combined followups |
 | `src/app/page.js` | Main UI component | Search, mastery chart, match history, Poro |
 | `src/app/components/MasteryBubbleChart.jsx` | D3.js visualization | Packed bubble chart with tooltips |
 | `src/app/components/PoroAssistant.jsx` | Interactive mascot | Clickable Poro with animations |
@@ -151,6 +155,12 @@ rift-recap/
 
 ### ✅ Visual & UX Improvements (Week 2)
 - [x] **Champion Image Proxy** - Server-side proxy at `/api/champion-icon` to avoid browser ORB/CORS blocking
+- [x] **Item & Spell Icons** - Full match card asset display
+  - Items: 6 equipment slots + trinket with Data Dragon v15.20.1
+  - Summoner Spells: Flash, Ignite, etc. with ID→name mapping
+  - Desktop: Inline grid layout next to champion
+  - Mobile: Items in separate scrollable row
+  - Graceful fallback for Arena/special game modes
 - [x] **Top Mastery Bubble Chart** - D3.js packed bubble visualization showing top 40 mastery champions
   - Interactive hover tooltips with mastery points and levels
   - Desktop: Fixed left sidebar (600px)
@@ -158,23 +168,39 @@ rift-recap/
 - [x] **Interactive Poro Assistant** - Clickable Poro that toggles dialogue visibility
   - Desktop: Full size, bottom-right corner
   - Mobile: 60% scaled, repositioned for better UX
+  - 50% API call reduction via combined response pattern
 - [x] **Match History Auto-Open** - Recent matches section expanded by default
 - [x] **Mobile Responsive Design**:
-  - Stacked search form on mobile
-  - Responsive typography (3xl → 5xl on larger screens)
-  - Optimized padding and spacing
-  - Dialogue buttons stack vertically on mobile
+  - Stacked match cards (op.gg style)
+  - Teams displayed as "hamburger" rows on mobile
+  - Responsive typography and spacing
+  - Dialogue buttons stack vertically
+  - Touch-optimized spacing and tap targets
 - [x] **Enhanced AI Insights** - Now analyzes both recent matches AND champion mastery data
+  - Poro dialogue includes full stats context (win rate, KDA, top champions)
+  - More accurate and personalized responses
 - [x] **Load More Matches** - On-demand pagination (20 matches at a time)
-- [x] **Champion Name Removal** - Cleaned up match cards for better readability
+  - Graceful handling when no more matches available
+  - Clear error messaging
 
 ### 🎨 Technical Improvements
-- [x] Custom image proxy with fallback URLs and edge caching
+- [x] **Multi-CDN Image Proxy System** - 3 API routes with fallback chains
+  - Champion icons: Community Dragon → GitHub raw
+  - Items: Data Dragon → Community Dragon → placeholder
+  - Spells: Data Dragon → Community Dragon → placeholder
+  - Transparent 1x1 PNG placeholders for missing assets
+- [x] **Data Dragon Integration** - Using Riot's official CDN (v15.20.1)
+- [x] **AI Optimization** - Combined response pattern (50% API call reduction)
+  - Single call returns both answer + followup questions
+  - Retry logic with exponential backoff
+  - Enhanced error logging with AWS metadata
 - [x] ChampionId → ChampionName mapping from match data
 - [x] Robust JSON parsing with smart quote handling
 - [x] D3.js data validation to prevent pack layout errors
 - [x] ESLint config updated to allow `<img>` tags (using custom proxy)
 - [x] Demo accounts now fetch 200 matches instead of 20
+- [x] Lazy loading for all images (performance optimization)
+- [x] 24-hour edge caching for CDN assets
 
 ### 🚧 In Progress
 - [ ] Additional demo accounts for judging
@@ -518,6 +544,55 @@ curl "http://localhost:3000/api/champion-icon?id=157"
 
 ---
 
+### GET `/api/item-icon`
+Proxies item icons from Data Dragon (Riot's official CDN).
+
+**Query Parameters:**
+- `id` (required): Item ID
+
+**Example:**
+```bash
+curl "http://localhost:3000/api/item-icon?id=3031"  # Infinity Edge
+```
+
+**Response:** PNG image (or transparent placeholder if not found)
+
+**Features:**
+- Uses Data Dragon v15.20.1
+- Fallback chain: Data Dragon → Community Dragon → placeholder
+- 24-hour edge caching
+- Supports standard items (trinkets may return placeholder)
+
+---
+
+### GET `/api/summoner-spell`
+Proxies summoner spell icons with ID→name mapping.
+
+**Query Parameters:**
+- `id` (required): Summoner spell ID
+
+**Example:**
+```bash
+curl "http://localhost:3000/api/summoner-spell?id=4"  # Flash
+```
+
+**Response:** PNG image (or placeholder for unknown IDs)
+
+**Supported Spell IDs:**
+- `4` - Flash
+- `14` - Ignite
+- `11` - Smite
+- `12` - Teleport
+- `7` - Heal
+- `6` - Ghost
+- `21` - Barrier
+- `3` - Exhaust
+- `1` - Cleanse
+- `32` - Mark/Dash (ARAM)
+- `2201`, `2202` - Arena spells
+
+---
+
 ### POST `/api/insights`
 Generates AI "Champion Personality" from profile + mastery data.
 
@@ -723,13 +798,22 @@ Deployment checklist:
 
 ---
 
-**Last Updated:** October 15, 2025  
-**Version:** 0.2.0 (Feature Complete)  
-**Status:** 🚀 Ready for Demo
+**Last Updated:** October 16, 2025  
+**Version:** 0.3.0 (Visual Polish)  
+**Status:** 🚀 Production Ready
 
 Built with ❤️ and ☕ for the League community
 
-### Recent Updates (Oct 15)
+### Recent Updates (Oct 16)
+- 🎮 **Match Card Overhaul** - Now displays items + summoner spells (like op.gg!)
+- 🖼️ **Data Dragon Integration** - Official Riot CDN for items/spells (v15.20.1)
+- ⚡ **50% API Reduction** - Poro assistant optimized with combined responses
+- 📱 **Mobile Match Cards** - Hamburger-style team layout, optimized spacing
+- 🐾 **Enhanced Poro Context** - Now includes full stats in dialogue prompts
+- 🔄 **Graceful Fallbacks** - Transparent placeholders for missing/Arena items
+- 🎯 **Better Error Handling** - Load More button hides when no matches left
+
+### Previous Updates (Oct 15)
 - ✨ Added interactive D3.js mastery bubble chart
 - 📱 Full mobile responsive design
 - 🐾 Clickable Poro assistant
