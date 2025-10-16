@@ -83,10 +83,11 @@ rift-recap/
 │   │   │   ├── match/route.js         # GET: Pagination (start/count params)
 │   │   │   ├── insights/route.js      # POST: Generate AI insights
 │   │   │   ├── mastery/route.js       # GET: Fetch top champion mastery
-│   │   │   ├── champion-icon/route.js # GET: Proxy champion images
-│   │   │   ├── item-icon/route.js     # GET: Proxy item images (Data Dragon)
-│   │   │   ├── summoner-spell/route.js # GET: Proxy spell images with ID mapping
-│   │   │   └── ai/route.js            # POST: Poro dialogue with combined followups
+│   │   │   ├── champion-icon/route.js   # GET: Proxy champion images
+│   │   │   ├── item-icon/route.js       # GET: Proxy item images (Data Dragon)
+│   │   │   ├── summoner-spell/route.js  # GET: Proxy spell images with ID mapping
+│   │   │   ├── ranked-emblem/route.js   # GET: Proxy ranked tier emblems
+│   │   │   └── ai/route.js              # POST: Poro dialogue with combined followups
 │   │   │
 │   │   ├── components/         # React components
 │   │   │   ├── PoroAssistant.jsx     # Interactive Poro sprite
@@ -133,6 +134,7 @@ rift-recap/
 | `src/app/api/champion-icon/route.js` | Proxy champion images | Avoids ORB/CORS, includes fallbacks |
 | `src/app/api/item-icon/route.js` | Proxy item images | Data Dragon v15.20.1, transparent placeholders |
 | `src/app/api/summoner-spell/route.js` | Proxy summoner spell images | ID→name mapping, supports ARAM/Arena |
+| `src/app/api/ranked-emblem/route.js` | Proxy ranked tier emblems | Iron → Challenger, Community Dragon |
 | `src/app/api/insights/route.js` | Generates AI insights | Includes match + mastery analysis |
 | `src/app/api/ai/route.js` | Poro dialogue responses | Interactive Q&A with Claude, combined followups |
 | `src/app/page.js` | Main UI component | Search, mastery chart, match history, Poro |
@@ -155,6 +157,11 @@ rift-recap/
 
 ### ✅ Visual & UX Improvements (Week 2)
 - [x] **Champion Image Proxy** - Server-side proxy at `/api/champion-icon` to avoid browser ORB/CORS blocking
+- [x] **Ranked Emblem Display** - Shows player's competitive rank
+  - Fetches Solo Queue (or Flex) rank via PUUID
+  - Displays tier emblem, rank, LP, and W/L record
+  - Compact inline layout next to summoner name
+  - Auto-hides for unranked players
 - [x] **Item & Spell Icons** - Full match card asset display
   - Items: 6 equipment slots + trinket with Data Dragon v15.20.1
   - Summoner Spells: Flash, Ignite, etc. with ID→name mapping
@@ -184,10 +191,11 @@ rift-recap/
   - Clear error messaging
 
 ### 🎨 Technical Improvements
-- [x] **Multi-CDN Image Proxy System** - 3 API routes with fallback chains
+- [x] **Multi-CDN Image Proxy System** - 4 API routes with fallback chains
   - Champion icons: Community Dragon → GitHub raw
   - Items: Data Dragon → Community Dragon → placeholder
   - Spells: Data Dragon → Community Dragon → placeholder
+  - Ranked emblems: Community Dragon (all tiers)
   - Transparent 1x1 PNG placeholders for missing assets
 - [x] **Data Dragon Integration** - Using Riot's official CDN (v15.20.1)
 - [x] **AI Optimization** - Combined response pattern (50% API call reduction)
@@ -593,6 +601,32 @@ curl "http://localhost:3000/api/summoner-spell?id=4"  # Flash
 
 ---
 
+### GET `/api/ranked-emblem`
+Proxies ranked tier emblems from Community Dragon.
+
+**Query Parameters:**
+- `tier` (required): Ranked tier name
+
+**Example:**
+```bash
+curl "http://localhost:3000/api/ranked-emblem?tier=GOLD"
+```
+
+**Response:** PNG image (or placeholder for unknown tier)
+
+**Supported Tiers:**
+- `IRON`, `BRONZE`, `SILVER`, `GOLD`, `PLATINUM`
+- `EMERALD`, `DIAMOND`, `MASTER`
+- `GRANDMASTER`, `CHALLENGER`
+- `UNRANKED` (returns placeholder)
+
+**Features:**
+- Uses Community Dragon ranked assets
+- 24-hour edge caching
+- Case-insensitive tier matching
+
+---
+
 ### POST `/api/insights`
 Generates AI "Champion Personality" from profile + mastery data.
 
@@ -805,6 +839,7 @@ Deployment checklist:
 Built with ❤️ and ☕ for the League community
 
 ### Recent Updates (Oct 16)
+- 🏆 **Ranked Emblem Display** - Shows competitive rank (tier, LP, W/L) on player card
 - 🎮 **Match Card Overhaul** - Now displays items + summoner spells (like op.gg!)
 - 🖼️ **Data Dragon Integration** - Official Riot CDN for items/spells (v15.20.1)
 - ⚡ **50% API Reduction** - Poro assistant optimized with combined responses
@@ -812,6 +847,7 @@ Built with ❤️ and ☕ for the League community
 - 🐾 **Enhanced Poro Context** - Now includes full stats in dialogue prompts
 - 🔄 **Graceful Fallbacks** - Transparent placeholders for missing/Arena items
 - 🎯 **Better Error Handling** - Load More button hides when no matches left
+- 🔧 **PUUID-based Ranked API** - Workaround for missing summoner.id field
 
 ### Previous Updates (Oct 15)
 - ✨ Added interactive D3.js mastery bubble chart
