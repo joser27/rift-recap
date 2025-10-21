@@ -42,6 +42,7 @@ export default function Home() {
   const [loadingPhase, setLoadingPhase] = useState(null);
   const loadingIntervalRef = useRef(null);
   const revertIdleTimerRef = useRef(null);
+  const [currentPoroMatch, setCurrentPoroMatch] = useState(null); // persist match context for followups
   const [showShareCard, setShowShareCard] = useState(false);
   const baseOptions = useMemo(() => ([
     { key: 'more', label: 'Tell me more about my playstyle', icon: <MessageCircle size={40} /> },
@@ -273,15 +274,15 @@ export default function Home() {
         account: profile.account,
         summoner: profile.summoner,
         rankedStats: profile.rankedStats,
-        matches: profile.matches.slice(0, 20) // Only send 20 most recent for context
+        matches: currentPoroMatch ? [currentPoroMatch] : profile.matches.slice(0, 20) // Prefer the active match context
       };
       
       let body;
       if (key.startsWith('followup-')) {
         const follow = options.find(o => o.key === key);
-        body = { kind: 'custom', profile: lightProfile, question: follow?.label };
+        body = { kind: 'custom', profile: lightProfile, question: follow?.label, match: currentPoroMatch };
       } else {
-        body = { kind: key, profile: lightProfile };
+        body = { kind: key, profile: lightProfile, match: currentPoroMatch };
       }
       const res = await fetch('/api/ai', {
         method: 'POST',
@@ -420,6 +421,9 @@ export default function Home() {
       revertIdleTimerRef.current = null;
     }
     try {
+      // Persist match context for followups
+      setCurrentPoroMatch(match);
+
       // Send lightweight profile (only essential data + this specific match)
       const lightProfile = {
         account: profile.account,

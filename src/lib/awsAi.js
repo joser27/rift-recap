@@ -154,7 +154,7 @@ export function buildDialoguePrompt(kind, profileData, extra, includeFollowups =
 
   // Followup suffix to append to main prompts
   const followupSuffix = includeFollowups 
-    ? '\n\nAfter your response, suggest 3 short follow-up questions the user might ask (related to your answer and their data). Format: FOLLOWUPS: question1 | question2 | question3'
+    ? '\n\nAfter your response, suggest 3 short follow-up questions the user can click to ask YOU (the Poro). Phrase them as questions FROM the user TO you (e.g., "How was my lane phase?" or "What should I build?" not "How did your lane phase go?"). Format: FOLLOWUPS: question1 | question2 | question3'
     : '';
 
   const prompts = {
@@ -165,10 +165,43 @@ export function buildDialoguePrompt(kind, profileData, extra, includeFollowups =
     surprise: `Share an interesting pattern or fun observation (max 3–4 sentences). Keep it playful, no lists, no asterisks.\n\n${preface}${followupSuffix}`,
     custom: (extra?.question ? `Answer the user's question about their gameplay (max 3–4 sentences). Keep it specific to their data. No lists; conversational. No asterisks. If the question asks for item/build advice and no current items are provided, give general guidance and direct them to u.gg/op.gg for exact builds.\n\nQuestion: ${extra.question}\n\n${preface}${followupSuffix}` : `Answer the user's question briefly (max 3–4 sentences).\n\n${preface}${followupSuffix}`),
     match: (() => {
-      const ctx = extra?.match && profileData?.account?.puuid
-        ? formatMatchContext(extra.match, profileData.account.puuid)
+      const playerPuuid = profileData?.account?.puuid;
+      const ctx = extra?.match && playerPuuid
+        ? formatMatchContext(extra.match, playerPuuid)
         : null;
-      return `${ctx ? ctx + '\n\n' : ''}Analyze this specific match for the player above (max 3–4 sentences). Explain what went right or wrong and give one key takeaway to try next time. Be friendly and conversational. No lists, no asterisks.${followupSuffix}`;
+
+      // Rich, compact per-match metrics for better analysis
+      let metrics = '';
+      if (extra?.match && playerPuuid) {
+        const m = extra.match;
+        try {
+          const parts = m?.info?.participants || [];
+          const p = parts.find(x => x?.puuid === playerPuuid);
+          if (p) {
+            const teamId = p.teamId;
+            const opp = parts.find(x => x?.teamId !== teamId && x?.teamPosition === (p.teamPosition || '')) || null;
+            const teamKills = parts.filter(x => x?.teamId === teamId).reduce((s, x) => s + (x?.kills || 0), 0);
+            const teamDamage = parts.filter(x => x?.teamId === teamId).reduce((s, x) => s + (x?.totalDamageDealtToChampions || 0), 0);
+            const cs = (p?.totalMinionsKilled || 0) + (p?.neutralMinionsKilled || 0);
+            const mins = Math.max(1, Math.floor((m?.info?.gameDuration || 0) / 60));
+            const csPerMin = (cs / mins).toFixed(1);
+            const kp = Math.round(((p.kills + p.assists) / Math.max(teamKills, 1)) * 100);
+            const dmgShare = Math.round(((p?.totalDamageDealtToChampions || 0) / Math.max(teamDamage, 1)) * 100);
+            const vs = p?.visionScore ?? 0;
+            const cw = p?.visionWardsBoughtInGame ?? p?.detectorWardsPlaced ?? 0;
+            const teamObj = (m?.info?.teams || []).find(t => t?.teamId === teamId)?.objectives;
+            const oppObj = (m?.info?.teams || []).find(t => t?.teamId !== teamId)?.objectives;
+            const dragons = `${teamObj?.dragon?.kills ?? 0} vs ${oppObj?.dragon?.kills ?? 0}`;
+            const heralds = `${teamObj?.riftHerald?.kills ?? 0} vs ${oppObj?.riftHerald?.kills ?? 0}`;
+            const barons = `${teamObj?.baron?.kills ?? 0} vs ${oppObj?.baron?.kills ?? 0}`;
+            const side = teamId === 100 ? 'blue' : 'red';
+
+            metrics = `\n\nMATCH METRICS:\n- Lane: ${(p.teamPosition || 'UNKNOWN')} vs ${(opp?.championName || 'Unknown')} (${side})\n- CS: ${cs} (${csPerMin}/min), KP: ${kp}%, Damage share: ${dmgShare}%\n- Vision: VS ${vs}, Control Wards: ${cw}\n- Objectives: Drakes ${dragons}, Heralds ${heralds}, Barons ${barons}`;
+          }
+        } catch {}
+      }
+
+      return `${ctx ? ctx + metrics + '\n\n' : ''}Analyze this specific match for the player above (max 3–4 sentences). Use the metrics provided to cite concrete numbers (e.g., CS/min, KP, damage share, vision, objectives). Give one specific takeaway for the next game. Be friendly and concise. No lists, no asterisks.${followupSuffix}`;
     })(),
     followups: (extra?.lastAnswer ? `Based on the assistant's last reply and the player's data, suggest three short follow-up questions the user might ask next. Keep them distinct and engaging. Output ONLY the three questions separated by the pipe character (|). No extra text.\n\nLast reply: ${extra.lastAnswer}\n\n${preface}` : `Suggest three short follow-up questions separated by | about the player's data. No extra text.\n\n${preface}`),
   };
