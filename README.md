@@ -426,6 +426,9 @@ rift-recap/
   - Single call returns both answer + followup questions
   - Retry logic with exponential backoff
   - Enhanced error logging with AWS metadata
+  - Payload optimization: Send only 20 matches (200KB vs 2MB) to avoid Vercel timeouts
+  - Rich match metrics: CS/min, KP%, damage share, vision, objectives for specific game analysis
+  - Match context persistence: Followups stay focused on the game being discussed
 - [x] ChampionId → ChampionName mapping from match data
 - [x] Robust JSON parsing with smart quote handling
 - [x] D3.js data validation to prevent pack layout errors
@@ -433,6 +436,7 @@ rift-recap/
 - [x] Demo accounts now fetch 200 matches instead of 20
 - [x] Lazy loading for all images (performance optimization)
 - [x] 24-hour edge caching for CDN assets
+- [x] Match deduplication logic in demo fetching and pagination
 
 ### 🎯 Final Submission Checklist
 - [x] Working application deployed to production
@@ -1372,6 +1376,9 @@ Built with ❤️ and ☕ for the League community
 - 🌟 **Performance Rankings** - Vision score percentile vs. lobby average
 - 🔧 **Match Deduplication** - Fixed duplicate key errors in demo accounts
 - 🤫 **Cleaner Logs** - Removed verbose console output from API routes
+- ⚡ **Reduced Payload Size** - Poro dialogue sends only 20 matches (10x smaller, fixes Vercel timeouts)
+- 🎯 **Match Context Persistence** - Followup questions stay focused on specific game being analyzed
+- 📊 **Rich Match Metrics** - Poro now analyzes CS/min, KP%, damage share, vision, objectives per match
 
 ### Previous Updates (Oct 16)
 - 🏆 **Ranked Emblem Display** - Shows competitive rank (tier, LP, W/L) on player card
