@@ -16,7 +16,6 @@ export async function GET(request) {
       );
     }
 
-    console.log(`Fetching matches for PUUID starting at ${start}, count ${count}`);
     
     const matches = await getAdditionalMatches(puuid, start, count);
 

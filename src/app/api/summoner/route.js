@@ -14,8 +14,6 @@ export async function GET(request) {
         { status: 400 }
       );
     }
-
-    console.log(`Fetching summoner: ${gameName}#${tagLine}`);
     
     const profile = await getPlayerProfile(gameName, tagLine);
 

@@ -30,14 +30,11 @@ export async function GET(request) {
 
     for (const url of candidates) {
       try {
-        console.log(`🔍 Trying item ${id} at: ${url}`);
         const upstreamRes = await fetch(url, { cache: 'no-store' });
-        console.log(`📊 Response: ${upstreamRes.status} ${upstreamRes.statusText}`);
         
         if (upstreamRes.ok) {
           const contentType = upstreamRes.headers.get('content-type') || 'image/png';
           const buf = await upstreamRes.arrayBuffer();
-          console.log(`✅ Item ${id} found! Size: ${buf.byteLength} bytes, URL: ${url}`);
           return new Response(buf, {
             status: 200,
             headers: {
@@ -49,16 +46,11 @@ export async function GET(request) {
               'Access-Control-Allow-Origin': '*',
             },
           });
-        } else {
-          console.log(`❌ Item ${id} returned ${upstreamRes.status} at: ${url}`);
         }
       } catch (e) {
         // Try next candidate
-        console.log(`❌ Item ${id} fetch error at ${url}:`, e.message);
       }
     }
-
-    console.log(`⚠️  Item ${id} not found, returning placeholder`);
 
     // Return transparent placeholder instead of 404
     return new Response(PLACEHOLDER_PNG, {

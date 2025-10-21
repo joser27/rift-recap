@@ -274,6 +274,7 @@ Unlike competitor sites that just show stats, we use **Claude 3.5 Haiku on AWS B
 - `@aws-sdk/credential-providers` - AWS credential management
 - `p-limit` - Concurrency control for API calls
 - `d3` - Data visualization library for bubble charts
+- `html2canvas` - Convert React components to downloadable images
 - `lucide-react` - Icon library
 - `dotenv` - Environment variable management
 
@@ -309,7 +310,8 @@ rift-recap/
 │   │   │   ├── poro.module.css       # Poro animations & styles
 │   │   │   ├── DialogueBox.jsx       # Chat bubble UI
 │   │   │   ├── DialogueBox.module.css
-│   │   │   └── MasteryBubbleChart.jsx # D3.js bubble visualization
+│   │   │   ├── MasteryBubbleChart.jsx # D3.js bubble visualization
+│   │   │   └── ShareableCard.jsx      # Spotify Wrapped-style downloadable card
 │   │   │
 │   │   ├── globals.css         # Tailwind base + custom cursor
 │   │   ├── layout.js           # Root layout
@@ -355,6 +357,7 @@ rift-recap/
 | `src/app/page.js` | Main UI component | Search, mastery chart, match history, Poro |
 | `src/app/components/MasteryBubbleChart.jsx` | D3.js visualization | Packed bubble chart with tooltips |
 | `src/app/components/PoroAssistant.jsx` | Interactive mascot | Clickable Poro with animations |
+| `src/app/components/ShareableCard.jsx` | Shareable image generator | Spotify Wrapped-style downloadable cards |
 | `public/demo-data/*.json` | Pre-fetched demo data | 200 matches each for instant loading |
 
 ---
@@ -404,6 +407,12 @@ rift-recap/
 - [x] **Load More Matches** - On-demand pagination (20 matches at a time)
   - Graceful handling when no more matches available
   - Clear error messaging
+- [x] **Spotify Wrapped-Style Shareable Card** - Downloadable year-end recap image
+  - 540×675px portrait card (Instagram-ready)
+  - AI nickname, ranked stats (games, win rate, KDA)
+  - Surprising stats (most-played, game time, win streaks, death count)
+  - Personality insights and performance rankings
+  - One-click download as PNG via html2canvas
 
 ### 🎨 Technical Improvements
 - [x] **Multi-CDN Image Proxy System** - 4 API routes with fallback chains
@@ -433,6 +442,7 @@ rift-recap/
 - [x] AWS Bedrock integration with cost optimization
 - [x] Error handling & graceful degradation
 - [x] Cross-browser testing (Chrome ✅, Firefox ✅, Safari ✅, Edge ✅)
+- [x] Shareable Wrapped cards (Spotify-style downloadable images)
 - [ ] 3-minute demo video (script ready, recording week of Nov 4-10)
 - [ ] Devpost submission form (draft ready)
 - [ ] Additional demo accounts (exploring high-elo players)
@@ -1349,13 +1359,21 @@ Every push to `main` automatically triggers:
 
 ## 📝 Changelog
 
-**Last Updated:** October 16, 2025  
-**Version:** 0.3.0 (Visual Polish)  
+**Last Updated:** October 21, 2025  
+**Version:** 0.4.0 (Shareable Cards)  
 **Status:** 🚀 Production Ready
 
 Built with ❤️ and ☕ for the League community
 
-### Recent Updates (Oct 16)
+### Recent Updates (Oct 21)
+- 🎨 **Spotify Wrapped-Style Cards** - Downloadable shareable recap images
+- ✨ **Surprising Stats** - Most-played champion, game time patterns, win streaks, death counts
+- 🎭 **Personality Insights** - Comfort pick analysis, aggressive vs. safe playstyle detection
+- 🌟 **Performance Rankings** - Vision score percentile vs. lobby average
+- 🔧 **Match Deduplication** - Fixed duplicate key errors in demo accounts
+- 🤫 **Cleaner Logs** - Removed verbose console output from API routes
+
+### Previous Updates (Oct 16)
 - 🏆 **Ranked Emblem Display** - Shows competitive rank (tier, LP, W/L) on player card
 - 🎮 **Match Card Overhaul** - Now displays items + summoner spells (like op.gg!)
 - 🖼️ **Data Dragon Integration** - Official Riot CDN for items/spells (v15.20.1)

@@ -37,13 +37,11 @@ export async function GET(request) {
     const url = CDRAGON_EMBLEM(tierLower);
 
     try {
-      console.log(`Fetching ranked emblem for ${tier}: ${url}`);
       const upstreamRes = await fetch(url, { cache: 'no-store' });
       
       if (upstreamRes.ok) {
         const contentType = upstreamRes.headers.get('content-type') || 'image/png';
         const buf = await upstreamRes.arrayBuffer();
-        console.log(`✅ Ranked emblem ${tier} found`);
         return new Response(buf, {
           status: 200,
           headers: {

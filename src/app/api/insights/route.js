@@ -13,7 +13,6 @@ export async function POST(request) {
       );
     }
 
-    console.log(`Generating insights for ${profileData.account.gameName}...`);
 
     const insights = await generatePlayerInsights(profileData);
 

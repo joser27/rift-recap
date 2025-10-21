@@ -64,12 +64,10 @@ export async function GET(request) {
     const ddUrl = DATA_DRAGON(id);
     if (ddUrl) {
       try {
-        console.log(`Trying Data Dragon for spell ${id}: ${ddUrl}`);
         const upstreamRes = await fetch(ddUrl, { cache: 'no-store' });
         if (upstreamRes.ok) {
           const contentType = upstreamRes.headers.get('content-type') || 'image/png';
           const buf = await upstreamRes.arrayBuffer();
-          console.log(`✅ Spell ${id} found via Data Dragon`);
           return new Response(buf, {
             status: 200,
             headers: {
@@ -80,7 +78,7 @@ export async function GET(request) {
           });
         }
       } catch (e) {
-        console.log(`❌ Data Dragon failed for spell ${id}`);
+        // Try fallback
       }
     }
 
@@ -89,12 +87,10 @@ export async function GET(request) {
     if (spellName) {
       try {
         const url = CDRAGON_BASE(spellName);
-        console.log(`Trying Community Dragon for spell ${id}: ${url}`);
         const upstreamRes = await fetch(url, { cache: 'no-store' });
         if (upstreamRes.ok) {
           const contentType = upstreamRes.headers.get('content-type') || 'image/png';
           const buf = await upstreamRes.arrayBuffer();
-          console.log(`✅ Spell ${id} (${spellName}) found via Community Dragon`);
           return new Response(buf, {
             status: 200,
             headers: {
@@ -105,7 +101,7 @@ export async function GET(request) {
           });
         }
       } catch (e) {
-        console.log(`❌ Community Dragon failed for spell ${id}`);
+        // Return placeholder
       }
     }
 

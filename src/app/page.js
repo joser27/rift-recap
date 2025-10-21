@@ -2,10 +2,11 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { MessageCircle, TrendingUp, UsersRound, Sparkles, Bot, Zap, PawPrint } from 'lucide-react';
+import { MessageCircle, TrendingUp, UsersRound, Sparkles, Bot, Zap, PawPrint, Share2 } from 'lucide-react';
 import PoroAssistant from './components/PoroAssistant';
 import DialogueBox from './components/DialogueBox';
 import MasteryBubbleChart from './components/MasteryBubbleChart';
+import ShareableCard from './components/ShareableCard';
 
 // Helper function to check for pre-loaded demo data
 async function checkDemoAccount(gameName, tagLine) {
@@ -41,6 +42,7 @@ export default function Home() {
   const [loadingPhase, setLoadingPhase] = useState(null);
   const loadingIntervalRef = useRef(null);
   const revertIdleTimerRef = useRef(null);
+  const [showShareCard, setShowShareCard] = useState(false);
   const baseOptions = useMemo(() => ([
     { key: 'more', label: 'Tell me more about my playstyle', icon: <MessageCircle size={40} /> },
     { key: 'improve', label: 'What should I improve?', icon: <TrendingUp size={40} /> },
@@ -141,17 +143,25 @@ export default function Home() {
       
       if (demoData) {
         console.log('✨ Using pre-loaded demo data (instant!)');
-        setProfile(demoData.profile);
+        // Deduplicate matches in demo data
+        const uniqueMatches = Array.from(
+          new Map(demoData.profile.matches.map(m => [m.metadata?.matchId, m])).values()
+        );
+        const cleanedProfile = {
+          ...demoData.profile,
+          matches: uniqueMatches
+        };
+        setProfile(cleanedProfile);
         setInsights(demoData.insights);
         setIsDemo(true);
-        setAllMatches(demoData.profile.matches);
+        setAllMatches(uniqueMatches);
         setHasMoreMatches(false); // Demo accounts are pre-loaded, no more to fetch
         // Fetch mastery for demo profile as well
         fetchMastery(
-          demoData.profile.summoner?.id,
-          demoData.profile.account?.tagLine,
-          demoData.profile.account?.puuid,
-          demoData.profile.matches
+          cleanedProfile.summoner?.id,
+          cleanedProfile.account?.tagLine,
+          cleanedProfile.account?.puuid,
+          uniqueMatches
         );
         // Phase 2: deliver initial insight
         setDialogue("I've got a quick insight ready!");
@@ -458,13 +468,21 @@ export default function Home() {
       const newMatches = data.data.matches;
       
       if (newMatches.length > 0) {
-        // Append new matches to cache
-        setAllMatches(prev => [...prev, ...newMatches]);
+        // Deduplicate matches by matchId before adding
+        setAllMatches(prev => {
+          const existingIds = new Set(prev.map(m => m.metadata?.matchId).filter(Boolean));
+          const uniqueNew = newMatches.filter(m => !existingIds.has(m.metadata?.matchId));
+          return [...prev, ...uniqueNew];
+        });
         // Update profile with all matches (for AI analysis)
-        setProfile(prev => ({
-          ...prev,
-          matches: [...prev.matches, ...newMatches]
-        }));
+        setProfile(prev => {
+          const existingIds = new Set(prev.matches.map(m => m.metadata?.matchId).filter(Boolean));
+          const uniqueNew = newMatches.filter(m => !existingIds.has(m.metadata?.matchId));
+          return {
+            ...prev,
+            matches: [...prev.matches, ...uniqueNew]
+          };
+        });
       }
       
       // Update hasMore flag
@@ -789,6 +807,15 @@ export default function Home() {
                     <p className="text-yellow-300"><strong>✨ Fun Fact:</strong> {insights.funFact}</p>
                   </div>
                 )}
+
+                {/* Share Button */}
+                <button
+                  onClick={() => setShowShareCard(true)}
+                  className="mt-6 w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white font-bold py-4 px-6 rounded-lg transition-all transform hover:scale-105 flex items-center justify-center gap-3"
+                >
+                  <Share2 size={24} />
+                  Share Your League Recap
+                </button>
               </div>
             )}
 
@@ -1141,6 +1168,16 @@ export default function Home() {
         />
         </div>
       </div>
+
+      {/* Shareable Card Modal */}
+      {showShareCard && profile && insights && (
+        <ShareableCard
+          profile={profile}
+          insights={insights}
+          mastery={mastery}
+          onClose={() => setShowShareCard(false)}
+        />
+      )}
     </main>
   );
 }
