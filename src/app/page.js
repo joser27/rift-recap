@@ -268,12 +268,20 @@ export default function Home() {
     }
     try {
       // Route followup keys to custom questions
+      // Send only essential data (not 200 raw matches) to avoid Vercel payload limits
+      const lightProfile = {
+        account: profile.account,
+        summoner: profile.summoner,
+        rankedStats: profile.rankedStats,
+        matches: profile.matches.slice(0, 20) // Only send 20 most recent for context
+      };
+      
       let body;
       if (key.startsWith('followup-')) {
         const follow = options.find(o => o.key === key);
-        body = { kind: 'custom', profile, question: follow?.label };
+        body = { kind: 'custom', profile: lightProfile, question: follow?.label };
       } else {
-        body = { kind: key, profile };
+        body = { kind: key, profile: lightProfile };
       }
       const res = await fetch('/api/ai', {
         method: 'POST',
@@ -341,10 +349,18 @@ export default function Home() {
       revertIdleTimerRef.current = null;
     }
     try {
+      // Send lightweight profile (only 20 recent matches)
+      const lightProfile = {
+        account: profile.account,
+        summoner: profile.summoner,
+        rankedStats: profile.rankedStats,
+        matches: profile.matches.slice(0, 20)
+      };
+      
       const res = await fetch('/api/ai', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ kind: 'custom', profile, question })
+        body: JSON.stringify({ kind: 'custom', profile: lightProfile, question })
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed');
@@ -404,10 +420,18 @@ export default function Home() {
       revertIdleTimerRef.current = null;
     }
     try {
+      // Send lightweight profile (only essential data + this specific match)
+      const lightProfile = {
+        account: profile.account,
+        summoner: profile.summoner,
+        rankedStats: profile.rankedStats,
+        matches: [match] // Only send the match being analyzed
+      };
+      
       const res = await fetch('/api/ai', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ kind: 'match', profile, match })
+        body: JSON.stringify({ kind: 'match', profile: lightProfile, match })
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed');
