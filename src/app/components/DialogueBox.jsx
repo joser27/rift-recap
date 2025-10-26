@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import styles from './DialogueBox.module.css';
 import React from 'react';
+import { ChevronDown } from 'lucide-react';
 
 export default function DialogueBox({
   text = '',
@@ -17,8 +18,15 @@ export default function DialogueBox({
 }) {
   const [displayed, setDisplayed] = useState('');
   const [done, setDone] = useState(!typing);
+  const [showHint, setShowHint] = useState(true);
   const indexRef = useRef(0);
   const timerRef = useRef(null);
+  
+  // Auto-hide hint after 6 seconds or when user starts typing
+  useEffect(() => {
+    const timer = setTimeout(() => setShowHint(false), 6000);
+    return () => clearTimeout(timer);
+  }, []);
 
   useEffect(() => {
     const safeText = typeof text === 'string' ? text : (text?.toString?.() ?? '');
@@ -54,6 +62,15 @@ export default function DialogueBox({
 
   return (
     <div className={styles.bubble}>
+      {/* Minimize Hint - Auto-hides after 6 seconds */}
+      {showHint && (
+        <div className="absolute top-2 right-2 flex items-center gap-1 text-gray-500 text-xs animate-pulse bg-white/90 px-2 py-1 rounded-md shadow-sm border border-gray-300 z-50">
+          <ChevronDown size={14} />
+          <span className="hidden sm:inline">Click Poro to minimize</span>
+          <span className="sm:hidden">Click Poro</span>
+        </div>
+      )}
+      
       <div className={styles.text}>{displayed}</div>
       {loadingPhase && (
         <div className={styles.loading}>

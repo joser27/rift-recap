@@ -3,6 +3,7 @@
 
 import { useEffect, useRef } from 'react';
 import * as d3 from 'd3';
+import { TrendingUp, TrendingDown, Activity } from 'lucide-react';
 
 export default function ProgressChart({ matches, playerPuuid }) {
   const svgRef = useRef();
@@ -91,23 +92,25 @@ export default function ProgressChart({ matches, playerPuuid }) {
       .style("fill", "#9CA3AF")
       .style("font-size", "12px");
 
-    // Add axis labels
+    // Add axis labels with better visibility
     svg.append("text")
       .attr("transform", "rotate(-90)")
-      .attr("y", 0 - margin.left)
+      .attr("y", 10)
       .attr("x", 0 - (height / 2))
       .attr("dy", "1em")
       .style("text-anchor", "middle")
-      .style("fill", "#9CA3AF")
-      .style("font-size", "14px")
-      .text("Rolling KDA (10-game avg)");
+      .style("fill", "#E5E7EB")
+      .style("font-size", "13px")
+      .style("font-weight", "600")
+      .text("KDA (10-game rolling average)");
 
     svg.append("text")
-      .attr("transform", `translate(${width / 2}, ${height - 5})`)
+      .attr("transform", `translate(${width / 2}, ${height})`)
       .style("text-anchor", "middle")
-      .style("fill", "#9CA3AF")
-      .style("font-size", "14px")
-      .text("Match Number");
+      .style("fill", "#E5E7EB")
+      .style("font-size", "13px")
+      .style("font-weight", "600")
+      .text("Game Number");
 
     // Create line generator
     const line = d3.line()
@@ -238,20 +241,46 @@ export default function ProgressChart({ matches, playerPuuid }) {
     );
   }
 
+  // Calculate trend for display
+  const firstHalfData = matches.slice(0, Math.floor(matches.length / 2));
+  const secondHalfData = matches.slice(Math.floor(matches.length / 2));
+  
+  const calcAvgKDA = (matchList) => {
+    const kdas = matchList.map(m => {
+      const p = m?.info?.participants?.find(part => part.puuid === playerPuuid);
+      return p ? ((p.kills + p.assists) / Math.max(p.deaths, 1)) : 0;
+    }).filter(k => k > 0);
+    return kdas.length > 0 ? kdas.reduce((sum, k) => sum + k, 0) / kdas.length : 0;
+  };
+  
+  const firstAvg = calcAvgKDA(firstHalfData);
+  const secondAvg = calcAvgKDA(secondHalfData);
+  const isImproving = secondAvg > firstAvg;
+  const trendPercent = firstAvg > 0 ? Math.abs(((secondAvg - firstAvg) / firstAvg) * 100) : 0;
+
   return (
-    <div className="bg-gray-800 rounded-lg p-6">
+    <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-lg p-6 shadow-xl border border-gray-700">
       <div className="mb-4">
-        <h3 className="text-xl font-bold text-white mb-2">📈 Your Season Journey</h3>
+        <div className="flex items-center gap-3 mb-2">
+          <Activity size={24} className="text-blue-400" />
+          <h3 className="text-xl font-bold text-white">Your Season Journey</h3>
+        </div>
         <p className="text-gray-400 text-sm">
-          Rolling 10-game KDA average showing your performance trend
+          Performance trend across all {matches.length} games (smoothed with 10-game rolling average)
         </p>
+        <div className={`mt-2 inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-semibold ${
+          isImproving ? 'bg-green-500/20 text-green-400' : 'bg-blue-500/20 text-blue-400'
+        }`}>
+          {isImproving ? <TrendingUp size={16} /> : <TrendingDown size={16} />}
+          {isImproving ? 'Trending Up' : 'Consistent'} • {trendPercent.toFixed(1)}% change
+        </div>
       </div>
       
       <div className="flex justify-center">
         <svg ref={svgRef} className="max-w-full h-auto" />
       </div>
       
-      <div className="mt-4 flex justify-center gap-6 text-sm text-gray-400">
+      <div className="mt-4 flex flex-wrap justify-center gap-4 text-xs text-gray-400">
         <div className="flex items-center gap-2">
           <div className="w-3 h-3 bg-green-500 rounded-full"></div>
           <span>Victory</span>

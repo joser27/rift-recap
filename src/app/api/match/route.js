@@ -19,13 +19,20 @@ export async function GET(request) {
     
     const matches = await getAdditionalMatches(puuid, start, count);
 
-    return NextResponse.json({
-      success: true,
-      data: {
-        matches,
-        hasMore: matches.length === count // If we got fewer than requested, no more available
+    return NextResponse.json(
+      {
+        success: true,
+        data: {
+          matches,
+          hasMore: matches.length === count // If we got fewer than requested, no more available
+        }
+      },
+      {
+        headers: {
+          'Cache-Control': 'no-store, max-age=0',
+        }
       }
-    });
+    );
 
   } catch (error) {
     console.error('Match API Error:', error);

@@ -17,10 +17,17 @@ export async function GET(request) {
     
     const profile = await getPlayerProfile(gameName, tagLine);
 
-    return NextResponse.json({
-      success: true,
-      data: profile
-    });
+    return NextResponse.json(
+      {
+        success: true,
+        data: profile
+      },
+      {
+        headers: {
+          'Cache-Control': 'no-store, max-age=0',
+        }
+      }
+    );
 
   } catch (error) {
     console.error('Summoner API Error:', error);

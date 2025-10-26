@@ -1,8 +1,8 @@
 // src/app/page.js
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { MessageCircle, TrendingUp, UsersRound, Sparkles, Bot, Zap, PawPrint, Share2 } from 'lucide-react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { MessageCircle, TrendingUp, UsersRound, Sparkles, Bot, Zap, PawPrint, Share2, Trophy, Award, Target, BarChart3, ArrowUpRight, ArrowDownRight, Flame, Twitter, AlertCircle, Lightbulb } from 'lucide-react';
 import PoroAssistant from './components/PoroAssistant';
 import DialogueBox from './components/DialogueBox';
 import MasteryBubbleChart from './components/MasteryBubbleChart';
@@ -589,28 +589,25 @@ export default function Home() {
   return (
     <main className="min-h-screen bg-gradient-to-b from-gray-900 to-gray-800 text-white p-4 md:p-8">
       <div className="max-w-7xl mx-auto relative">
-        {/* Left Sidebar: Top Mastery - Large bubble chart (Desktop only) */}
+        {/* Left Sidebar: Champion Mastery (Desktop only) */}
         {profile && (
-          <aside className="hidden 2xl:block fixed left-4 top-24 w-[450px] z-10">
-            <div className="p-4">
-              <h3 className="text-xl font-bold mb-3 text-center bg-gradient-to-r from-blue-400 to-purple-600 bg-clip-text text-transparent">
-                Top Mastery
-              </h3>
-              {masteryLoading ? (
-                <div className="flex items-center justify-center" style={{ height: '450px' }}>
-                  <p className="text-gray-400 text-center">Loading...</p>
-                </div>
-              ) : mastery && mastery.length > 0 ? (
-                <MasteryBubbleChart 
-                  mastery={mastery} 
-                  getChampionIconSrc={getChampionIconSrc}
-                />
-              ) : (
-                <div className="flex items-center justify-center" style={{ height: '450px' }}>
-                  <p className="text-gray-400 text-center">No mastery data available</p>
-                </div>
-              )}
-            </div>
+          <aside className="hidden 2xl:block absolute left-[-300px] top-24 w-[450px] z-10">
+            {masteryLoading ? (
+              <div className="bg-gray-800 rounded-lg p-6 flex items-center justify-center" style={{ height: '450px' }}>
+                <p className="text-gray-400 text-center">Loading mastery data...</p>
+              </div>
+            ) : mastery && mastery.length > 0 ? (
+              <MasteryBubbleChart 
+                mastery={mastery} 
+                getChampionIconSrc={getChampionIconSrc}
+                allMatches={allMatches}
+                playerPuuid={profile.account?.puuid}
+              />
+            ) : (
+              <div className="bg-gray-800 rounded-lg p-6 flex items-center justify-center" style={{ height: '450px' }}>
+                <p className="text-gray-400 text-center">No mastery data available</p>
+              </div>
+            )}
           </aside>
         )}
         
@@ -821,19 +818,28 @@ export default function Home() {
 
                 {insights.strength && (
                   <div className="bg-green-900/20 border-l-4 border-green-500 p-4 mb-3">
-                    <p className="text-green-300"><strong>💪 Strength:</strong> {insights.strength}</p>
+                    <p className="text-green-300 flex items-start gap-2">
+                      <Zap size={18} className="mt-0.5 shrink-0" />
+                      <span><strong>Strength:</strong> {insights.strength}</span>
+                    </p>
                   </div>
                 )}
 
                 {insights.weakness && (
                   <div className="bg-red-900/20 border-l-4 border-red-500 p-4 mb-3">
-                    <p className="text-red-300"><strong>⚠️ Growth Area:</strong> {insights.weakness}</p>
+                    <p className="text-red-300 flex items-start gap-2">
+                      <Target size={18} className="mt-0.5 shrink-0" />
+                      <span><strong>Growth Area:</strong> {insights.weakness}</span>
+                    </p>
                   </div>
                 )}
 
                 {insights.funFact && (
                   <div className="bg-yellow-900/20 border-l-4 border-yellow-500 p-4">
-                    <p className="text-yellow-300"><strong>✨ Fun Fact:</strong> {insights.funFact}</p>
+                    <p className="text-yellow-300 flex items-start gap-2">
+                      <Lightbulb size={18} className="mt-0.5 shrink-0" />
+                      <span><strong>Fun Fact:</strong> {insights.funFact}</span>
+                    </p>
                   </div>
                 )}
 
@@ -879,25 +885,22 @@ export default function Home() {
             )}
 
 
-            {/* Top Mastery - Mobile version (below Champion Personality) */}
+            {/* Champion Mastery - Mobile version (below Champion Personality) */}
             {profile && (
-              <div className="block 2xl:hidden bg-gray-800 rounded-lg p-4 md:p-6 shadow-lg">
-                <h3 className="text-xl md:text-2xl font-bold mb-4 text-center bg-gradient-to-r from-blue-400 to-purple-600 bg-clip-text text-transparent">
-                  Top Mastery
-                </h3>
+              <div className="block 2xl:hidden">
                 {masteryLoading ? (
-                  <div className="flex items-center justify-center" style={{ height: '400px' }}>
+                  <div className="bg-gray-800 rounded-lg p-6 flex items-center justify-center" style={{ height: '400px' }}>
                     <p className="text-gray-400 text-center">Loading mastery data...</p>
                   </div>
                 ) : mastery && mastery.length > 0 ? (
-                  <div className="w-full">
-                    <MasteryBubbleChart 
-                      mastery={mastery} 
-                      getChampionIconSrc={getChampionIconSrc}
-                    />
-                  </div>
+                  <MasteryBubbleChart 
+                    mastery={mastery} 
+                    getChampionIconSrc={getChampionIconSrc}
+                    allMatches={allMatches}
+                    playerPuuid={profile.account?.puuid}
+                  />
                 ) : (
-                  <div className="flex items-center justify-center" style={{ height: '400px' }}>
+                  <div className="bg-gray-800 rounded-lg p-6 flex items-center justify-center" style={{ height: '400px' }}>
                     <p className="text-gray-400 text-center">No mastery data available</p>
                   </div>
                 )}
@@ -915,7 +918,7 @@ export default function Home() {
                   />
                 )}
 
-                {/* Your Best Game Highlight - Mobile */}
+                {/* Your Defining Moment - Mobile */}
                 {allMatches.length > 0 && (() => {
                   const bestMatch = allMatches.reduce((best, current) => {
                     const participant = current.info.participants.find(p => p.puuid === profile.account.puuid);
@@ -923,16 +926,18 @@ export default function Home() {
                     
                     if (!participant || !currentParticipant) return best;
                     
-                    // Calculate performance score (KDA weighted + damage + CS + vision)
-                    const currentScore = (currentParticipant.kills * 2) + currentParticipant.assists - currentParticipant.deaths + 
+                    // Calculate comprehensive performance score
+                    const currentScore = (currentParticipant.kills * 3) + (currentParticipant.assists * 2) - (currentParticipant.deaths * 2) + 
                                        (currentParticipant.totalDamageDealtToChampions / 1000) + 
                                        ((currentParticipant.totalMinionsKilled + currentParticipant.neutralMinionsKilled) / 10) +
-                                       (currentParticipant.visionScore / 2);
+                                       (currentParticipant.visionScore) +
+                                       (currentParticipant.win ? 20 : 0);
                     
-                    const bestScore = best ? ((best.kills * 2) + best.assists - best.deaths + 
+                    const bestScore = best ? ((best.kills * 3) + (best.assists * 2) - (best.deaths * 2) + 
                                              (best.totalDamageDealtToChampions / 1000) + 
                                              ((best.totalMinionsKilled + best.neutralMinionsKilled) / 10) +
-                                             (best.visionScore / 2)) : -Infinity;
+                                             (best.visionScore) +
+                                             (best.win ? 20 : 0)) : -Infinity;
                     
                     return currentScore > bestScore ? currentParticipant : best;
                   }, null);
@@ -941,77 +946,114 @@ export default function Home() {
 
                   const kdaRatio = ((bestMatch.kills + bestMatch.assists) / Math.max(bestMatch.deaths, 1)).toFixed(2);
                   const cs = (bestMatch.totalMinionsKilled || 0) + (bestMatch.neutralMinionsKilled || 0);
-                  const minutes = Math.max(1, Math.floor(allMatches.find(m => 
+                  const matchData = allMatches.find(m => 
                     m.info.participants.find(p => p.puuid === profile.account.puuid) === bestMatch
-                  )?.info.gameDuration / 60));
+                  );
+                  const minutes = Math.max(1, Math.floor(matchData?.info.gameDuration / 60));
                   const csPerMin = (cs / minutes).toFixed(1);
                   const damage = Math.round(bestMatch.totalDamageDealtToChampions / 1000);
-                  const gameDate = new Date(allMatches.find(m => 
-                    m.info.participants.find(p => p.puuid === profile.account.puuid) === bestMatch
-                  )?.info.gameCreation).toLocaleDateString();
+                  const gameDate = new Date(matchData?.info.gameCreation).toLocaleDateString();
+                  
+                  // Calculate team contribution
+                  const teamKills = matchData?.info.participants
+                    .filter(p => p.teamId === bestMatch.teamId)
+                    .reduce((sum, p) => sum + p.kills, 0) || 1;
+                  const killParticipation = (((bestMatch.kills + bestMatch.assists) / teamKills) * 100).toFixed(0);
 
                   return (
-                    <div className="bg-gradient-to-r from-yellow-400 to-orange-500 p-6 rounded-lg shadow-lg">
+                    <div className="bg-gradient-to-br from-yellow-500 via-orange-500 to-red-500 p-6 rounded-lg shadow-xl border border-yellow-400/30">
                       <div className="flex items-center gap-3 mb-4">
-                        <span className="text-3xl">⭐</span>
-                        <h2 className="text-2xl font-bold text-gray-900">Your Standout Game</h2>
+                        <div className="p-2 bg-white/20 rounded-lg backdrop-blur-sm">
+                          <Trophy className="text-white" size={28} />
+                        </div>
+                        <div>
+                          <h2 className="text-2xl font-bold text-white">Your Defining Moment</h2>
+                          <p className="text-white/80 text-sm">Peak performance showcase</p>
+                        </div>
                       </div>
                       
-                      <div className="bg-white/20 backdrop-blur-sm rounded-lg p-4 mb-4">
-                        <div className="flex items-center gap-4 mb-3">
-                          <img
-                            src={getChampionIconSrc(bestMatch.championId)}
-                            alt={`${bestMatch.championName} icon`}
-                            className="w-16 h-16 rounded-lg object-cover"
-                            onError={(e) => { e.currentTarget.style.display = 'none'; }}
-                          />
-                          <div>
-                            <h3 className="text-xl font-bold text-gray-900">
+                      <div className="bg-white/15 backdrop-blur-md rounded-xl p-5 mb-4 border border-white/20">
+                        <div className="flex items-center gap-4 mb-4">
+                          <div className="relative">
+                            <img
+                              src={getChampionIconSrc(bestMatch.championId)}
+                              alt={`${bestMatch.championName} icon`}
+                              className="w-20 h-20 rounded-xl object-cover ring-4 ring-white/30"
+                              onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                            />
+                            {bestMatch.win && (
+                              <div className="absolute -top-2 -right-2 bg-green-500 rounded-full p-1">
+                                <Award size={16} className="text-white" />
+                              </div>
+                            )}
+                          </div>
+                          <div className="flex-1">
+                            <h3 className="text-2xl font-bold text-white mb-1">
                               {bestMatch.championName}
                             </h3>
-                            <p className="text-lg text-gray-800">
-                              {bestMatch.kills}/{bestMatch.deaths}/{bestMatch.assists} KDA ({kdaRatio})
-                            </p>
-                            <p className="text-sm text-gray-700">
-                              {bestMatch.win ? '🏆 Victory' : '💪 Valiant effort'} • {gameDate}
-                            </p>
+                            <div className="flex items-center gap-2 mb-1">
+                              <span className="text-2xl font-bold text-white">
+                                {bestMatch.kills}/{bestMatch.deaths}/{bestMatch.assists}
+                              </span>
+                              <span className="px-2 py-0.5 bg-white/20 rounded text-white text-sm font-semibold">
+                                {kdaRatio} KDA
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-2 text-white/90 text-sm">
+                              <Flame size={14} />
+                              <span>{killParticipation}% Kill Participation</span>
+                            </div>
                           </div>
                         </div>
                         
-                        <div className="grid grid-cols-2 gap-3 text-sm">
-                          <div className="bg-white/30 rounded px-3 py-2">
-                            <span className="text-gray-700 font-semibold">Damage:</span>
-                            <div className="text-gray-900 font-bold">{damage}K</div>
+                        <div className="grid grid-cols-2 gap-2.5 text-sm">
+                          <div className="bg-white/20 rounded-lg px-3 py-2.5 backdrop-blur-sm">
+                            <div className="flex items-center gap-1.5 text-white/70 mb-1">
+                              <Target size={14} />
+                              <span className="font-medium">Damage</span>
+                            </div>
+                            <div className="text-white font-bold text-lg">{damage}K</div>
                           </div>
-                          <div className="bg-white/30 rounded px-3 py-2">
-                            <span className="text-gray-700 font-semibold">CS:</span>
-                            <div className="text-gray-900 font-bold">{cs} ({csPerMin}/m)</div>
+                          <div className="bg-white/20 rounded-lg px-3 py-2.5 backdrop-blur-sm">
+                            <div className="flex items-center gap-1.5 text-white/70 mb-1">
+                              <BarChart3 size={14} />
+                              <span className="font-medium">CS/min</span>
+                            </div>
+                            <div className="text-white font-bold text-lg">{csPerMin}</div>
                           </div>
-                          <div className="bg-white/30 rounded px-3 py-2">
-                            <span className="text-gray-700 font-semibold">Vision:</span>
-                            <div className="text-gray-900 font-bold">{bestMatch.visionScore}</div>
+                          <div className="bg-white/20 rounded-lg px-3 py-2.5 backdrop-blur-sm">
+                            <div className="text-white/70 font-medium mb-1">Vision Score</div>
+                            <div className="text-white font-bold text-lg">{bestMatch.visionScore}</div>
                           </div>
-                          <div className="bg-white/30 rounded px-3 py-2">
-                            <span className="text-gray-700 font-semibold">Gold:</span>
-                            <div className="text-gray-900 font-bold">{Math.round(bestMatch.goldEarned / 1000)}K</div>
+                          <div className="bg-white/20 rounded-lg px-3 py-2.5 backdrop-blur-sm">
+                            <div className="text-white/70 font-medium mb-1">Gold Earned</div>
+                            <div className="text-white font-bold text-lg">{Math.round(bestMatch.goldEarned / 1000)}K</div>
+                          </div>
+                        </div>
+                        
+                        <div className="mt-3 text-center">
+                          <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-white/20 rounded-full text-white text-xs font-semibold">
+                            {bestMatch.win ? <Trophy size={14} /> : <Award size={14} />}
+                            {bestMatch.win ? 'Victory' : 'Outstanding Performance'} • {gameDate}
                           </div>
                         </div>
                       </div>
                       
                       <button
                         onClick={() => {
-                          const text = `Just had my best game this season! 🎮\n\n${bestMatch.championName}: ${bestMatch.kills}/${bestMatch.deaths}/${bestMatch.assists} KDA\n${damage}K damage • ${cs} CS • ${bestMatch.visionScore} vision score\n\nCheck your stats at https://rift-recap.vercel.app`;
+                          const text = `My defining moment in League! 🏆\n\n${bestMatch.championName}: ${bestMatch.kills}/${bestMatch.deaths}/${bestMatch.assists} (${kdaRatio} KDA)\n${damage}K damage • ${killParticipation}% KP • ${bestMatch.visionScore} vision\n\nGet your Rift Rewind at https://rift-recap.vercel.app`;
                           window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`);
                         }}
-                        className="bg-white text-orange-600 px-6 py-3 rounded-lg font-bold hover:bg-gray-100 transition flex items-center gap-2 mx-auto"
+                        className="w-full bg-white text-orange-600 px-6 py-3 rounded-lg font-bold hover:bg-gray-100 transition flex items-center justify-center gap-2 shadow-lg"
                       >
-                        📤 Share This Game
+                        <Twitter size={18} />
+                        Share Your Defining Moment
                       </button>
                     </div>
                   );
                 })()}
 
-                {/* Biggest Improvement Metric - Mobile */}
+                {/* Growth Metrics - Mobile */}
                 {allMatches.length >= 20 && (() => {
                   const totalMatches = allMatches.length;
                   const earlyMatches = allMatches.slice(-totalMatches, -Math.floor(totalMatches / 2));
@@ -1019,93 +1061,150 @@ export default function Home() {
                   
                   if (earlyMatches.length === 0 || recentMatches.length === 0) return null;
                   
-                  const calculateAvgKDA = (matches) => {
-                    const validMatches = matches.filter(match => {
-                      const participant = match.info.participants.find(p => p.puuid === profile.account.puuid);
-                      return participant && participant.deaths > 0;
+                  // Calculate multiple metrics
+                  const calcMetrics = (matches) => {
+                    let totalKDA = 0, validKDA = 0, totalWins = 0;
+                    let totalCS = 0, totalVision = 0, totalDamage = 0, totalGames = 0;
+                    
+                    matches.forEach(match => {
+                      const p = match.info.participants.find(x => x.puuid === profile.account.puuid);
+                      if (!p) return;
+                      
+                      if (p.deaths > 0) {
+                        totalKDA += (p.kills + p.assists) / p.deaths;
+                        validKDA++;
+                      }
+                      if (p.win) totalWins++;
+                      
+                      const duration = Math.max(1, match.info.gameDuration / 60);
+                      totalCS += ((p.totalMinionsKilled || 0) + (p.neutralMinionsKilled || 0)) / duration;
+                      totalVision += p.visionScore;
+                      totalDamage += p.totalDamageDealtToChampions;
+                      totalGames++;
                     });
                     
-                    if (validMatches.length === 0) return 0;
-                    
-                    const totalKDA = validMatches.reduce((sum, match) => {
-                      const participant = match.info.participants.find(p => p.puuid === profile.account.puuid);
-                      return sum + ((participant.kills + participant.assists) / participant.deaths);
-                    }, 0);
-                    
-                    return totalKDA / validMatches.length;
+                    return {
+                      kda: validKDA > 0 ? totalKDA / validKDA : 0,
+                      winRate: totalGames > 0 ? (totalWins / totalGames) * 100 : 0,
+                      csPerMin: totalGames > 0 ? totalCS / totalGames : 0,
+                      visionScore: totalGames > 0 ? totalVision / totalGames : 0,
+                      avgDamage: totalGames > 0 ? totalDamage / totalGames : 0
+                    };
                   };
                   
-                  const earlyKDA = calculateAvgKDA(earlyMatches);
-                  const recentKDA = calculateAvgKDA(recentMatches);
-                  const improvement = earlyKDA > 0 ? ((recentKDA - earlyKDA) / earlyKDA * 100) : 0;
+                  const early = calcMetrics(earlyMatches);
+                  const recent = calcMetrics(recentMatches);
                   
-                  // Calculate win rate improvement
-                  const earlyWins = earlyMatches.filter(match => {
-                    const participant = match.info.participants.find(p => p.puuid === profile.account.puuid);
-                    return participant && participant.win;
-                  }).length;
-                  const recentWins = recentMatches.filter(match => {
-                    const participant = match.info.participants.find(p => p.puuid === profile.account.puuid);
-                    return participant && participant.win;
-                  }).length;
+                  const improvements = [
+                    {
+                      name: 'KDA',
+                      early: early.kda,
+                      recent: recent.kda,
+                      change: early.kda > 0 ? ((recent.kda - early.kda) / early.kda * 100) : 0,
+                      icon: Target,
+                      format: (v) => v.toFixed(2)
+                    },
+                    {
+                      name: 'Win Rate',
+                      early: early.winRate,
+                      recent: recent.winRate,
+                      change: recent.winRate - early.winRate,
+                      icon: Trophy,
+                      format: (v) => `${v.toFixed(1)}%`
+                    },
+                    {
+                      name: 'CS/min',
+                      early: early.csPerMin,
+                      recent: recent.csPerMin,
+                      change: early.csPerMin > 0 ? ((recent.csPerMin - early.csPerMin) / early.csPerMin * 100) : 0,
+                      icon: BarChart3,
+                      format: (v) => v.toFixed(1)
+                    },
+                    {
+                      name: 'Vision',
+                      early: early.visionScore,
+                      recent: recent.visionScore,
+                      change: early.visionScore > 0 ? ((recent.visionScore - early.visionScore) / early.visionScore * 100) : 0,
+                      icon: Award,
+                      format: (v) => v.toFixed(1)
+                    }
+                  ].sort((a, b) => Math.abs(b.change) - Math.abs(a.change));
                   
-                  const earlyWinRate = (earlyWins / earlyMatches.length) * 100;
-                  const recentWinRate = (recentWins / recentMatches.length) * 100;
-                  const winRateImprovement = recentWinRate - earlyWinRate;
-                  
-                  const isImproving = improvement > 0 || winRateImprovement > 0;
-                  const mainMetric = Math.abs(improvement) > Math.abs(winRateImprovement) ? 'KDA' : 'Win Rate';
-                  const mainValue = mainMetric === 'KDA' ? improvement : winRateImprovement;
+                  const topImprovement = improvements[0];
+                  const isImproving = topImprovement.change > 0;
                   
                   return (
-                    <div className={`p-6 rounded-lg shadow-lg ${isImproving ? 'bg-gradient-to-r from-green-500 to-emerald-600' : 'bg-gradient-to-r from-blue-500 to-indigo-600'}`}>
+                    <div className={`p-6 rounded-lg shadow-xl border ${
+                      isImproving 
+                        ? 'bg-gradient-to-br from-green-600 via-emerald-600 to-teal-600 border-green-400/30' 
+                        : 'bg-gradient-to-br from-blue-600 via-indigo-600 to-purple-600 border-blue-400/30'
+                    }`}>
                       <div className="flex items-center gap-3 mb-4">
-                        <span className="text-3xl">{isImproving ? '📈' : '📊'}</span>
-                        <h2 className="text-2xl font-bold text-white">Biggest Improvement</h2>
-                      </div>
-                      
-                      <div className="bg-white/20 backdrop-blur-sm rounded-lg p-4 mb-4">
-                        <div className="text-center">
-                          <div className="text-4xl font-bold text-white mb-2">
-                            {mainValue > 0 ? '+' : ''}{mainValue.toFixed(1)}%
-                          </div>
-                          <div className="text-lg text-white/90 mb-3">
-                            {mainMetric} {isImproving ? 'Increase' : 'Change'}
-                          </div>
-                          
-                          <div className="grid grid-cols-2 gap-4 text-sm">
-                            <div className="bg-white/30 rounded px-3 py-2">
-                              <div className="text-white/80 font-semibold">Early Season</div>
-                              <div className="text-white font-bold">
-                                {mainMetric === 'KDA' ? earlyKDA.toFixed(2) : `${earlyWinRate.toFixed(1)}%`}
-                              </div>
-                            </div>
-                            <div className="bg-white/30 rounded px-3 py-2">
-                              <div className="text-white/80 font-semibold">Recent Games</div>
-                              <div className="text-white font-bold">
-                                {mainMetric === 'KDA' ? recentKDA.toFixed(2) : `${recentWinRate.toFixed(1)}%`}
-                              </div>
-                            </div>
-                          </div>
-                          
-                          {mainMetric !== 'KDA' && (
-                            <div className="mt-3 text-sm text-white/80">
-                              KDA: {earlyKDA.toFixed(2)} → {recentKDA.toFixed(2)} ({improvement > 0 ? '+' : ''}{improvement.toFixed(1)}%)
-                            </div>
-                          )}
-                          {mainMetric !== 'Win Rate' && (
-                            <div className="mt-3 text-sm text-white/80">
-                              Win Rate: {earlyWinRate.toFixed(1)}% → {recentWinRate.toFixed(1)}% ({winRateImprovement > 0 ? '+' : ''}{winRateImprovement.toFixed(1)}%)
-                            </div>
-                          )}
+                        <div className="p-2 bg-white/20 rounded-lg backdrop-blur-sm">
+                          {isImproving ? <TrendingUp className="text-white" size={28} /> : <BarChart3 className="text-white" size={28} />}
+                        </div>
+                        <div>
+                          <h2 className="text-2xl font-bold text-white">Growth Metrics</h2>
+                          <p className="text-white/80 text-sm">Your journey of improvement</p>
                         </div>
                       </div>
                       
-                      <div className="text-center">
-                        <p className="text-white/90 text-sm">
+                      <div className="bg-white/15 backdrop-blur-md rounded-xl p-5 mb-4 border border-white/20">
+                        {/* Top improvement highlight */}
+                        <div className="text-center mb-4 pb-4 border-b border-white/20">
+                          <div className="flex items-center justify-center gap-2 mb-2">
+                            {React.createElement(topImprovement.icon, { size: 20, className: "text-white" })}
+                            <span className="text-white/80 text-sm font-medium">Strongest Growth Area</span>
+                          </div>
+                          <div className="text-4xl font-bold text-white mb-1">
+                            {topImprovement.change > 0 ? '+' : ''}{topImprovement.change.toFixed(1)}%
+                          </div>
+                          <div className="text-lg text-white/90 font-semibold">
+                            {topImprovement.name} {isImproving ? 'Improvement' : 'Adjustment'}
+                          </div>
+                          <div className="flex items-center justify-center gap-4 mt-3 text-sm">
+                            <div className="text-white/70">
+                              Early: <span className="font-bold text-white">{topImprovement.format(topImprovement.early)}</span>
+                            </div>
+                            <div className="flex items-center">
+                              {topImprovement.change > 0 ? <ArrowUpRight className="text-green-300" size={16} /> : <ArrowDownRight className="text-blue-300" size={16} />}
+                            </div>
+                            <div className="text-white/70">
+                              Recent: <span className="font-bold text-white">{topImprovement.format(topImprovement.recent)}</span>
+                            </div>
+                          </div>
+                        </div>
+                        
+                        {/* All metrics grid */}
+                        <div className="grid grid-cols-2 gap-2.5">
+                          {improvements.map((metric, idx) => (
+                            <div key={idx} className="bg-white/15 rounded-lg p-3 backdrop-blur-sm">
+                              <div className="flex items-center gap-1.5 mb-2">
+                                {React.createElement(metric.icon, { size: 14, className: "text-white/70" })}
+                                <span className="text-white/70 text-xs font-medium">{metric.name}</span>
+                              </div>
+                              <div className="flex items-baseline gap-1.5">
+                                <span className={`text-lg font-bold ${
+                                  metric.change > 0 ? 'text-green-300' : metric.change < 0 ? 'text-red-300' : 'text-white'
+                                }`}>
+                                  {metric.change > 0 ? '+' : ''}{metric.change.toFixed(1)}%
+                                </span>
+                                {metric.change > 0 && <ArrowUpRight className="text-green-300" size={14} />}
+                                {metric.change < 0 && <ArrowDownRight className="text-red-300" size={14} />}
+                              </div>
+                              <div className="text-white/60 text-xs mt-1">
+                                {metric.format(metric.early)} → {metric.format(metric.recent)}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                      
+                      <div className="text-center px-2">
+                        <p className="text-white/90 text-sm font-medium">
                           {isImproving 
-                            ? `You've been getting better! Keep up the great work! 🎉`
-                            : `Your performance has been consistent. Focus on specific areas to improve! 💪`
+                            ? "You're leveling up! Keep pushing your limits and the wins will follow."
+                            : "Consistency is key! Focus on your strongest areas to climb even higher."
                           }
                         </p>
                       </div>
@@ -1431,7 +1530,7 @@ export default function Home() {
               />
             )}
 
-            {/* Your Best Game Highlight */}
+            {/* Your Defining Moment - Desktop */}
             {allMatches.length > 0 && (() => {
               const bestMatch = allMatches.reduce((best, current) => {
                 const participant = current.info.participants.find(p => p.puuid === profile.account.puuid);
@@ -1439,16 +1538,18 @@ export default function Home() {
                 
                 if (!participant || !currentParticipant) return best;
                 
-                // Calculate performance score (KDA weighted + damage + CS + vision)
-                const currentScore = (currentParticipant.kills * 2) + currentParticipant.assists - currentParticipant.deaths + 
+                // Calculate comprehensive performance score
+                const currentScore = (currentParticipant.kills * 3) + (currentParticipant.assists * 2) - (currentParticipant.deaths * 2) + 
                                    (currentParticipant.totalDamageDealtToChampions / 1000) + 
                                    ((currentParticipant.totalMinionsKilled + currentParticipant.neutralMinionsKilled) / 10) +
-                                   (currentParticipant.visionScore / 2);
+                                   (currentParticipant.visionScore) +
+                                   (currentParticipant.win ? 20 : 0);
                 
-                const bestScore = best ? ((best.kills * 2) + best.assists - best.deaths + 
+                const bestScore = best ? ((best.kills * 3) + (best.assists * 2) - (best.deaths * 2) + 
                                          (best.totalDamageDealtToChampions / 1000) + 
                                          ((best.totalMinionsKilled + best.neutralMinionsKilled) / 10) +
-                                         (best.visionScore / 2)) : -Infinity;
+                                         (best.visionScore) +
+                                         (best.win ? 20 : 0)) : -Infinity;
                 
                 return currentScore > bestScore ? currentParticipant : best;
               }, null);
@@ -1457,77 +1558,114 @@ export default function Home() {
 
               const kdaRatio = ((bestMatch.kills + bestMatch.assists) / Math.max(bestMatch.deaths, 1)).toFixed(2);
               const cs = (bestMatch.totalMinionsKilled || 0) + (bestMatch.neutralMinionsKilled || 0);
-              const minutes = Math.max(1, Math.floor(allMatches.find(m => 
+              const matchData = allMatches.find(m => 
                 m.info.participants.find(p => p.puuid === profile.account.puuid) === bestMatch
-              )?.info.gameDuration / 60));
+              );
+              const minutes = Math.max(1, Math.floor(matchData?.info.gameDuration / 60));
               const csPerMin = (cs / minutes).toFixed(1);
               const damage = Math.round(bestMatch.totalDamageDealtToChampions / 1000);
-              const gameDate = new Date(allMatches.find(m => 
-                m.info.participants.find(p => p.puuid === profile.account.puuid) === bestMatch
-              )?.info.gameCreation).toLocaleDateString();
+              const gameDate = new Date(matchData?.info.gameCreation).toLocaleDateString();
+              
+              // Calculate team contribution
+              const teamKills = matchData?.info.participants
+                .filter(p => p.teamId === bestMatch.teamId)
+                .reduce((sum, p) => sum + p.kills, 0) || 1;
+              const killParticipation = (((bestMatch.kills + bestMatch.assists) / teamKills) * 100).toFixed(0);
 
               return (
-                <div className="bg-gradient-to-r from-yellow-400 to-orange-500 p-6 rounded-lg shadow-lg">
+                <div className="bg-gradient-to-br from-yellow-500 via-orange-500 to-red-500 p-6 rounded-lg shadow-xl border border-yellow-400/30">
                   <div className="flex items-center gap-3 mb-4">
-                    <span className="text-3xl">⭐</span>
-                    <h2 className="text-2xl font-bold text-gray-900">Your Standout Game</h2>
+                    <div className="p-2 bg-white/20 rounded-lg backdrop-blur-sm">
+                      <Trophy className="text-white" size={28} />
+                    </div>
+                    <div>
+                      <h2 className="text-2xl font-bold text-white">Your Defining Moment</h2>
+                      <p className="text-white/80 text-sm">Peak performance showcase</p>
+                    </div>
                   </div>
                   
-                  <div className="bg-white/20 backdrop-blur-sm rounded-lg p-4 mb-4">
-                    <div className="flex items-center gap-4 mb-3">
-                      <img
-                        src={getChampionIconSrc(bestMatch.championId)}
-                        alt={`${bestMatch.championName} icon`}
-                        className="w-16 h-16 rounded-lg object-cover"
-                        onError={(e) => { e.currentTarget.style.display = 'none'; }}
-                      />
-                      <div>
-                        <h3 className="text-xl font-bold text-gray-900">
+                  <div className="bg-white/15 backdrop-blur-md rounded-xl p-5 mb-4 border border-white/20">
+                    <div className="flex items-center gap-4 mb-4">
+                      <div className="relative">
+                        <img
+                          src={getChampionIconSrc(bestMatch.championId)}
+                          alt={`${bestMatch.championName} icon`}
+                          className="w-20 h-20 rounded-xl object-cover ring-4 ring-white/30"
+                          onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                        />
+                        {bestMatch.win && (
+                          <div className="absolute -top-2 -right-2 bg-green-500 rounded-full p-1">
+                            <Award size={16} className="text-white" />
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex-1">
+                        <h3 className="text-2xl font-bold text-white mb-1">
                           {bestMatch.championName}
                         </h3>
-                        <p className="text-lg text-gray-800">
-                          {bestMatch.kills}/{bestMatch.deaths}/{bestMatch.assists} KDA ({kdaRatio})
-                        </p>
-                        <p className="text-sm text-gray-700">
-                          {bestMatch.win ? '🏆 Victory' : '💪 Valiant effort'} • {gameDate}
-                        </p>
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="text-2xl font-bold text-white">
+                            {bestMatch.kills}/{bestMatch.deaths}/{bestMatch.assists}
+                          </span>
+                          <span className="px-2 py-0.5 bg-white/20 rounded text-white text-sm font-semibold">
+                            {kdaRatio} KDA
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2 text-white/90 text-sm">
+                          <Flame size={14} />
+                          <span>{killParticipation}% Kill Participation</span>
+                        </div>
                       </div>
                     </div>
                     
-                    <div className="grid grid-cols-2 gap-3 text-sm">
-                      <div className="bg-white/30 rounded px-3 py-2">
-                        <span className="text-gray-700 font-semibold">Damage:</span>
-                        <div className="text-gray-900 font-bold">{damage}K</div>
+                    <div className="grid grid-cols-2 gap-2.5 text-sm">
+                      <div className="bg-white/20 rounded-lg px-3 py-2.5 backdrop-blur-sm">
+                        <div className="flex items-center gap-1.5 text-white/70 mb-1">
+                          <Target size={14} />
+                          <span className="font-medium">Damage</span>
+                        </div>
+                        <div className="text-white font-bold text-lg">{damage}K</div>
                       </div>
-                      <div className="bg-white/30 rounded px-3 py-2">
-                        <span className="text-gray-700 font-semibold">CS:</span>
-                        <div className="text-gray-900 font-bold">{cs} ({csPerMin}/m)</div>
+                      <div className="bg-white/20 rounded-lg px-3 py-2.5 backdrop-blur-sm">
+                        <div className="flex items-center gap-1.5 text-white/70 mb-1">
+                          <BarChart3 size={14} />
+                          <span className="font-medium">CS/min</span>
+                        </div>
+                        <div className="text-white font-bold text-lg">{csPerMin}</div>
                       </div>
-                      <div className="bg-white/30 rounded px-3 py-2">
-                        <span className="text-gray-700 font-semibold">Vision:</span>
-                        <div className="text-gray-900 font-bold">{bestMatch.visionScore}</div>
+                      <div className="bg-white/20 rounded-lg px-3 py-2.5 backdrop-blur-sm">
+                        <div className="text-white/70 font-medium mb-1">Vision Score</div>
+                        <div className="text-white font-bold text-lg">{bestMatch.visionScore}</div>
                       </div>
-                      <div className="bg-white/30 rounded px-3 py-2">
-                        <span className="text-gray-700 font-semibold">Gold:</span>
-                        <div className="text-gray-900 font-bold">{Math.round(bestMatch.goldEarned / 1000)}K</div>
+                      <div className="bg-white/20 rounded-lg px-3 py-2.5 backdrop-blur-sm">
+                        <div className="text-white/70 font-medium mb-1">Gold Earned</div>
+                        <div className="text-white font-bold text-lg">{Math.round(bestMatch.goldEarned / 1000)}K</div>
+                      </div>
+                    </div>
+                    
+                    <div className="mt-3 text-center">
+                      <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-white/20 rounded-full text-white text-xs font-semibold">
+                        {bestMatch.win ? <Trophy size={14} /> : <Award size={14} />}
+                        {bestMatch.win ? 'Victory' : 'Outstanding Performance'} • {gameDate}
                       </div>
                     </div>
                   </div>
                   
                   <button
                     onClick={() => {
-                      const text = `Just had my best game this season! 🎮\n\n${bestMatch.championName}: ${bestMatch.kills}/${bestMatch.deaths}/${bestMatch.assists} KDA\n${damage}K damage • ${cs} CS • ${bestMatch.visionScore} vision score\n\nCheck your stats at https://rift-recap.vercel.app`;
+                      const text = `My defining moment in League! 🏆\n\n${bestMatch.championName}: ${bestMatch.kills}/${bestMatch.deaths}/${bestMatch.assists} (${kdaRatio} KDA)\n${damage}K damage • ${killParticipation}% KP • ${bestMatch.visionScore} vision\n\nGet your Rift Rewind at https://rift-recap.vercel.app`;
                       window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`);
                     }}
-                    className="bg-white text-orange-600 px-6 py-3 rounded-lg font-bold hover:bg-gray-100 transition flex items-center gap-2 mx-auto"
+                    className="w-full bg-white text-orange-600 px-6 py-3 rounded-lg font-bold hover:bg-gray-100 transition flex items-center justify-center gap-2 shadow-lg"
                   >
-                    📤 Share This Game
+                    <Twitter size={18} />
+                    Share Your Defining Moment
                   </button>
                 </div>
               );
             })()}
 
-            {/* Biggest Improvement Metric */}
+            {/* Growth Metrics - Desktop */}
             {allMatches.length >= 20 && (() => {
               const totalMatches = allMatches.length;
               const earlyMatches = allMatches.slice(-totalMatches, -Math.floor(totalMatches / 2));
@@ -1535,93 +1673,150 @@ export default function Home() {
               
               if (earlyMatches.length === 0 || recentMatches.length === 0) return null;
               
-              const calculateAvgKDA = (matches) => {
-                const validMatches = matches.filter(match => {
-                  const participant = match.info.participants.find(p => p.puuid === profile.account.puuid);
-                  return participant && participant.deaths > 0;
+              // Calculate multiple metrics
+              const calcMetrics = (matches) => {
+                let totalKDA = 0, validKDA = 0, totalWins = 0;
+                let totalCS = 0, totalVision = 0, totalDamage = 0, totalGames = 0;
+                
+                matches.forEach(match => {
+                  const p = match.info.participants.find(x => x.puuid === profile.account.puuid);
+                  if (!p) return;
+                  
+                  if (p.deaths > 0) {
+                    totalKDA += (p.kills + p.assists) / p.deaths;
+                    validKDA++;
+                  }
+                  if (p.win) totalWins++;
+                  
+                  const duration = Math.max(1, match.info.gameDuration / 60);
+                  totalCS += ((p.totalMinionsKilled || 0) + (p.neutralMinionsKilled || 0)) / duration;
+                  totalVision += p.visionScore;
+                  totalDamage += p.totalDamageDealtToChampions;
+                  totalGames++;
                 });
                 
-                if (validMatches.length === 0) return 0;
-                
-                const totalKDA = validMatches.reduce((sum, match) => {
-                  const participant = match.info.participants.find(p => p.puuid === profile.account.puuid);
-                  return sum + ((participant.kills + participant.assists) / participant.deaths);
-                }, 0);
-                
-                return totalKDA / validMatches.length;
+                return {
+                  kda: validKDA > 0 ? totalKDA / validKDA : 0,
+                  winRate: totalGames > 0 ? (totalWins / totalGames) * 100 : 0,
+                  csPerMin: totalGames > 0 ? totalCS / totalGames : 0,
+                  visionScore: totalGames > 0 ? totalVision / totalGames : 0,
+                  avgDamage: totalGames > 0 ? totalDamage / totalGames : 0
+                };
               };
               
-              const earlyKDA = calculateAvgKDA(earlyMatches);
-              const recentKDA = calculateAvgKDA(recentMatches);
-              const improvement = earlyKDA > 0 ? ((recentKDA - earlyKDA) / earlyKDA * 100) : 0;
+              const early = calcMetrics(earlyMatches);
+              const recent = calcMetrics(recentMatches);
               
-              // Calculate win rate improvement
-              const earlyWins = earlyMatches.filter(match => {
-                const participant = match.info.participants.find(p => p.puuid === profile.account.puuid);
-                return participant && participant.win;
-              }).length;
-              const recentWins = recentMatches.filter(match => {
-                const participant = match.info.participants.find(p => p.puuid === profile.account.puuid);
-                return participant && participant.win;
-              }).length;
+              const improvements = [
+                {
+                  name: 'KDA',
+                  early: early.kda,
+                  recent: recent.kda,
+                  change: early.kda > 0 ? ((recent.kda - early.kda) / early.kda * 100) : 0,
+                  icon: Target,
+                  format: (v) => v.toFixed(2)
+                },
+                {
+                  name: 'Win Rate',
+                  early: early.winRate,
+                  recent: recent.winRate,
+                  change: recent.winRate - early.winRate,
+                  icon: Trophy,
+                  format: (v) => `${v.toFixed(1)}%`
+                },
+                {
+                  name: 'CS/min',
+                  early: early.csPerMin,
+                  recent: recent.csPerMin,
+                  change: early.csPerMin > 0 ? ((recent.csPerMin - early.csPerMin) / early.csPerMin * 100) : 0,
+                  icon: BarChart3,
+                  format: (v) => v.toFixed(1)
+                },
+                {
+                  name: 'Vision',
+                  early: early.visionScore,
+                  recent: recent.visionScore,
+                  change: early.visionScore > 0 ? ((recent.visionScore - early.visionScore) / early.visionScore * 100) : 0,
+                  icon: Award,
+                  format: (v) => v.toFixed(1)
+                }
+              ].sort((a, b) => Math.abs(b.change) - Math.abs(a.change));
               
-              const earlyWinRate = (earlyWins / earlyMatches.length) * 100;
-              const recentWinRate = (recentWins / recentMatches.length) * 100;
-              const winRateImprovement = recentWinRate - earlyWinRate;
-              
-              const isImproving = improvement > 0 || winRateImprovement > 0;
-              const mainMetric = Math.abs(improvement) > Math.abs(winRateImprovement) ? 'KDA' : 'Win Rate';
-              const mainValue = mainMetric === 'KDA' ? improvement : winRateImprovement;
+              const topImprovement = improvements[0];
+              const isImproving = topImprovement.change > 0;
               
               return (
-                <div className={`p-6 rounded-lg shadow-lg ${isImproving ? 'bg-gradient-to-r from-green-500 to-emerald-600' : 'bg-gradient-to-r from-blue-500 to-indigo-600'}`}>
+                <div className={`p-6 rounded-lg shadow-xl border ${
+                  isImproving 
+                    ? 'bg-gradient-to-br from-green-600 via-emerald-600 to-teal-600 border-green-400/30' 
+                    : 'bg-gradient-to-br from-blue-600 via-indigo-600 to-purple-600 border-blue-400/30'
+                }`}>
                   <div className="flex items-center gap-3 mb-4">
-                    <span className="text-3xl">{isImproving ? '📈' : '📊'}</span>
-                    <h2 className="text-2xl font-bold text-white">Biggest Improvement</h2>
-                  </div>
-                  
-                  <div className="bg-white/20 backdrop-blur-sm rounded-lg p-4 mb-4">
-                    <div className="text-center">
-                      <div className="text-4xl font-bold text-white mb-2">
-                        {mainValue > 0 ? '+' : ''}{mainValue.toFixed(1)}%
-                      </div>
-                      <div className="text-lg text-white/90 mb-3">
-                        {mainMetric} {isImproving ? 'Increase' : 'Change'}
-                      </div>
-                      
-                      <div className="grid grid-cols-2 gap-4 text-sm">
-                        <div className="bg-white/30 rounded px-3 py-2">
-                          <div className="text-white/80 font-semibold">Early Season</div>
-                          <div className="text-white font-bold">
-                            {mainMetric === 'KDA' ? earlyKDA.toFixed(2) : `${earlyWinRate.toFixed(1)}%`}
-                          </div>
-                        </div>
-                        <div className="bg-white/30 rounded px-3 py-2">
-                          <div className="text-white/80 font-semibold">Recent Games</div>
-                          <div className="text-white font-bold">
-                            {mainMetric === 'KDA' ? recentKDA.toFixed(2) : `${recentWinRate.toFixed(1)}%`}
-                          </div>
-                        </div>
-                      </div>
-                      
-                      {mainMetric !== 'KDA' && (
-                        <div className="mt-3 text-sm text-white/80">
-                          KDA: {earlyKDA.toFixed(2)} → {recentKDA.toFixed(2)} ({improvement > 0 ? '+' : ''}{improvement.toFixed(1)}%)
-                        </div>
-                      )}
-                      {mainMetric !== 'Win Rate' && (
-                        <div className="mt-3 text-sm text-white/80">
-                          Win Rate: {earlyWinRate.toFixed(1)}% → {recentWinRate.toFixed(1)}% ({winRateImprovement > 0 ? '+' : ''}{winRateImprovement.toFixed(1)}%)
-                        </div>
-                      )}
+                    <div className="p-2 bg-white/20 rounded-lg backdrop-blur-sm">
+                      {isImproving ? <TrendingUp className="text-white" size={28} /> : <BarChart3 className="text-white" size={28} />}
+                    </div>
+                    <div>
+                      <h2 className="text-2xl font-bold text-white">Growth Metrics</h2>
+                      <p className="text-white/80 text-sm">Your journey of improvement</p>
                     </div>
                   </div>
                   
-                  <div className="text-center">
-                    <p className="text-white/90 text-sm">
+                  <div className="bg-white/15 backdrop-blur-md rounded-xl p-5 mb-4 border border-white/20">
+                    {/* Top improvement highlight */}
+                    <div className="text-center mb-4 pb-4 border-b border-white/20">
+                      <div className="flex items-center justify-center gap-2 mb-2">
+                        {React.createElement(topImprovement.icon, { size: 20, className: "text-white" })}
+                        <span className="text-white/80 text-sm font-medium">Strongest Growth Area</span>
+                      </div>
+                      <div className="text-4xl font-bold text-white mb-1">
+                        {topImprovement.change > 0 ? '+' : ''}{topImprovement.change.toFixed(1)}%
+                      </div>
+                      <div className="text-lg text-white/90 font-semibold">
+                        {topImprovement.name} {isImproving ? 'Improvement' : 'Adjustment'}
+                      </div>
+                      <div className="flex items-center justify-center gap-4 mt-3 text-sm">
+                        <div className="text-white/70">
+                          Early: <span className="font-bold text-white">{topImprovement.format(topImprovement.early)}</span>
+                        </div>
+                        <div className="flex items-center">
+                          {topImprovement.change > 0 ? <ArrowUpRight className="text-green-300" size={16} /> : <ArrowDownRight className="text-blue-300" size={16} />}
+                        </div>
+                        <div className="text-white/70">
+                          Recent: <span className="font-bold text-white">{topImprovement.format(topImprovement.recent)}</span>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    {/* All metrics grid */}
+                    <div className="grid grid-cols-2 gap-2.5">
+                      {improvements.map((metric, idx) => (
+                        <div key={idx} className="bg-white/15 rounded-lg p-3 backdrop-blur-sm">
+                          <div className="flex items-center gap-1.5 mb-2">
+                            {React.createElement(metric.icon, { size: 14, className: "text-white/70" })}
+                            <span className="text-white/70 text-xs font-medium">{metric.name}</span>
+                          </div>
+                          <div className="flex items-baseline gap-1.5">
+                            <span className={`text-lg font-bold ${
+                              metric.change > 0 ? 'text-green-300' : metric.change < 0 ? 'text-red-300' : 'text-white'
+                            }`}>
+                              {metric.change > 0 ? '+' : ''}{metric.change.toFixed(1)}%
+                            </span>
+                            {metric.change > 0 && <ArrowUpRight className="text-green-300" size={14} />}
+                            {metric.change < 0 && <ArrowDownRight className="text-red-300" size={14} />}
+                          </div>
+                          <div className="text-white/60 text-xs mt-1">
+                            {metric.format(metric.early)} → {metric.format(metric.recent)}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  
+                  <div className="text-center px-2">
+                    <p className="text-white/90 text-sm font-medium">
                       {isImproving 
-                        ? `You've been getting better! Keep up the great work! 🎉`
-                        : `Your performance has been consistent. Focus on specific areas to improve! 💪`
+                        ? "You're leveling up! Keep pushing your limits and the wins will follow."
+                        : "Consistency is key! Focus on your strongest areas to climb even higher."
                       }
                     </p>
                   </div>
