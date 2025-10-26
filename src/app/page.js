@@ -591,13 +591,13 @@ export default function Home() {
       <div className="max-w-7xl mx-auto relative">
         {/* Left Sidebar: Top Mastery - Large bubble chart (Desktop only) */}
         {profile && (
-          <aside className="hidden lg:block fixed left-8 top-24 w-[600px] z-10">
-            <div className="p-6">
-              <h3 className="text-2xl font-bold mb-4 text-center bg-gradient-to-r from-blue-400 to-purple-600 bg-clip-text text-transparent">
+          <aside className="hidden 2xl:block fixed left-4 top-24 w-[450px] z-10">
+            <div className="p-4">
+              <h3 className="text-xl font-bold mb-3 text-center bg-gradient-to-r from-blue-400 to-purple-600 bg-clip-text text-transparent">
                 Top Mastery
               </h3>
               {masteryLoading ? (
-                <div className="flex items-center justify-center" style={{ height: '600px' }}>
+                <div className="flex items-center justify-center" style={{ height: '450px' }}>
                   <p className="text-gray-400 text-center">Loading...</p>
                 </div>
               ) : mastery && mastery.length > 0 ? (
@@ -606,7 +606,7 @@ export default function Home() {
                   getChampionIconSrc={getChampionIconSrc}
                 />
               ) : (
-                <div className="flex items-center justify-center" style={{ height: '600px' }}>
+                <div className="flex items-center justify-center" style={{ height: '450px' }}>
                   <p className="text-gray-400 text-center">No mastery data available</p>
                 </div>
               )}
@@ -881,7 +881,7 @@ export default function Home() {
 
             {/* Top Mastery - Mobile version (below Champion Personality) */}
             {profile && (
-              <div className="block lg:hidden bg-gray-800 rounded-lg p-4 md:p-6 shadow-lg">
+              <div className="block 2xl:hidden bg-gray-800 rounded-lg p-4 md:p-6 shadow-lg">
                 <h3 className="text-xl md:text-2xl font-bold mb-4 text-center bg-gradient-to-r from-blue-400 to-purple-600 bg-clip-text text-transparent">
                   Top Mastery
                 </h3>
@@ -906,7 +906,7 @@ export default function Home() {
 
             {/* Mobile Progress Tracking Features */}
             {profile && (
-              <div className="block lg:hidden space-y-6">
+              <div className="block 2xl:hidden space-y-6">
                 {/* Progress Over Time Chart - Mobile */}
                 {allMatches.length > 0 && (
                   <ProgressChart 
@@ -1422,7 +1422,7 @@ export default function Home() {
 
         {/* Right Sidebar: Progress Tracking Features (Desktop only) */}
         {profile && (
-          <aside className="hidden lg:block absolute top-[124px] right-[-500px] w-[600px] z-10 space-y-6">
+          <aside className="hidden 2xl:block absolute right-[-300px] top-24 w-[450px] z-10 space-y-6">
             {/* Progress Over Time Chart */}
             {allMatches.length > 0 && (
               <ProgressChart 
