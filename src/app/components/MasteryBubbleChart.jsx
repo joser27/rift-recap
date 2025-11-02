@@ -1,18 +1,19 @@
-// MasteryBubbleChart.jsx - Full width version
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
 import * as d3 from 'd3';
-import { Crown, Trophy, Star, Twitter, ChevronRight, ChevronLeft } from 'lucide-react';
+import html2canvas from 'html2canvas';
+import { Crown, Trophy, Star, ChevronRight, ChevronLeft, Download } from 'lucide-react';
 
 export default function MasteryBubbleChart({ mastery, getChampionIconSrc, allMatches = null, playerPuuid = null }) {
   const svgRef = useRef(null);
   const containerRef = useRef(null);
+  const shareWrapperRef = useRef(null);
   const [tooltip, setTooltip] = useState({ visible: false, x: 0, y: 0, data: null });
   const [isReady, setIsReady] = useState(false);
-  const [viewMode, setViewMode] = useState('mastery'); // 'mastery' or 'recent'
+  const [viewMode, setViewMode] = useState('mastery');
+  const [isCapturing, setIsCapturing] = useState(false);
   
-  // Compute recent matches data
   const computeRecentFromMatches = (matches, puuid) => {
     try {
       if (!matches || !Array.isArray(matches) || matches.length === 0) return [];
@@ -48,7 +49,6 @@ export default function MasteryBubbleChart({ mastery, getChampionIconSrc, allMat
   const canToggle = recentData.length > 0 && mastery.length > 0;
   const currentData = viewMode === 'mastery' ? mastery : recentData;
 
-  // Wait for container to be ready
   useEffect(() => {
     const timer = setTimeout(() => setIsReady(true), 100);
     return () => clearTimeout(timer);
@@ -59,14 +59,12 @@ export default function MasteryBubbleChart({ mastery, getChampionIconSrc, allMat
       return;
     }
 
-    // Get actual container width and make it square
     const containerWidth = containerRef.current.clientWidth;
     if (!containerWidth || containerWidth < 10) {
       return;
     }
-    const size = containerWidth; // Make it fill the full width
+    const size = containerWidth;
 
-    // Clear previous render
     d3.select(svgRef.current).selectAll('*').remove();
 
     const svg = d3.select(svgRef.current)
@@ -74,8 +72,6 @@ export default function MasteryBubbleChart({ mastery, getChampionIconSrc, allMat
       .attr('height', size)
       .attr('viewBox', `0 0 ${size} ${size}`);
 
-    // Prepare data - use championPoints or games as value
-    // Filter out invalid entries and ensure minimum values
     const data = currentData
       .filter(m => m && (m.championId != null))
       .map(m => ({
@@ -83,19 +79,16 @@ export default function MasteryBubbleChart({ mastery, getChampionIconSrc, allMat
         value: Math.max(m.championPoints || (m.games * 2000) || 1000, 1000),
         id: m.championId
       }))
-      .slice(0, 40); // Limit to 40 champions max
+      .slice(0, 40);
 
-    // Ensure we have valid data
     if (data.length === 0) return;
 
-    // Create hierarchy for pack layout
     const root = d3.hierarchy({ children: data })
       .sum(d => d.value || 1000);
 
-    // Create pack layout with full size
     const pack = d3.pack()
       .size([size, size])
-      .padding(Math.max(2, size * 0.01)); // Responsive padding
+      .padding(Math.max(2, size * 0.01));
 
     let nodes;
     try {
@@ -106,18 +99,15 @@ export default function MasteryBubbleChart({ mastery, getChampionIconSrc, allMat
       return;
     }
 
-    // Color scale
     const colorScale = d3.scaleOrdinal()
       .domain(data.map(d => d.championId))
       .range(['#60a5fa', '#a78bfa', '#fb923c', '#34d399', '#f472b6', '#f59e0b', '#22d3ee', '#ef4444']);
 
-    // Create groups for each bubble
     const bubbles = svg.selectAll('g')
       .data(nodes)
       .join('g')
       .attr('transform', d => `translate(${d.x},${d.y})`);
 
-    // Add circles
     bubbles.append('circle')
       .attr('r', d => d.r)
       .attr('fill', d => colorScale(d.data.championId))
@@ -125,30 +115,35 @@ export default function MasteryBubbleChart({ mastery, getChampionIconSrc, allMat
       .attr('stroke', '#1f2937')
       .attr('stroke-width', 2);
 
-    // Add champion icons - fill most of the bubble
+    svg.append('defs')
+      .selectAll('clipPath')
+      .data(nodes)
+      .join('clipPath')
+      .attr('id', (d, i) => `clip-${i}`)
+      .append('circle')
+      .attr('r', d => d.r * 0.9);
+
     bubbles.append('image')
+      .attr('href', d => getChampionIconSrc(d.data.championId))
       .attr('xlink:href', d => getChampionIconSrc(d.data.championId))
+      .attr('crossorigin', 'anonymous')
       .attr('x', d => -d.r * 0.95)
       .attr('y', d => -d.r * 0.95)
       .attr('width', d => d.r * 1.9)
       .attr('height', d => d.r * 1.9)
-      .attr('clip-path', d => `circle(${d.r * 0.9}px at 50% 50%)`)
+      .attr('clip-path', (d, i) => `url(#clip-${i})`)
       .attr('opacity', 1);
-
-    // Add invisible hover targets for better interaction
     bubbles.append('circle')
       .attr('r', d => d.r)
       .attr('fill', 'transparent')
       .attr('cursor', 'pointer')
       .on('mouseenter', function(event, d) {
-        // Highlight on hover
         d3.select(this.parentNode).select('circle:first-child')
           .transition()
           .duration(200)
           .attr('opacity', 1)
           .attr('stroke-width', 3);
         
-        // Show tooltip
         const rect = containerRef.current.getBoundingClientRect();
         setTooltip({
           visible: true,
@@ -166,25 +161,20 @@ export default function MasteryBubbleChart({ mastery, getChampionIconSrc, allMat
         }));
       })
       .on('mouseleave', function() {
-        // Remove highlight
         d3.select(this.parentNode).select('circle:first-child')
           .transition()
           .duration(200)
           .attr('opacity', 0.8)
           .attr('stroke-width', 2);
         
-        // Hide tooltip
         setTooltip({ visible: false, x: 0, y: 0, data: null });
       });
 
-    // Handle window resize
     const handleResize = () => {
       if (!containerRef.current) return;
       const newWidth = containerRef.current.clientWidth;
       if (newWidth !== containerWidth) {
-        // Re-render on resize
         d3.select(svgRef.current).selectAll('*').remove();
-        // Trigger re-render by updating a dummy state or just call the effect logic again
       }
     };
 
@@ -197,26 +187,183 @@ export default function MasteryBubbleChart({ mastery, getChampionIconSrc, allMat
     return <p className="text-gray-500 text-sm">No mastery data</p>;
   }
 
-  // Calculate stats based on current view
   const totalPoints = currentData.reduce((sum, m) => sum + (m.championPoints || 0), 0);
   const totalChampions = currentData.length;
   const top3 = currentData.slice(0, 3);
   const statLabel = viewMode === 'mastery' ? 'Total Points' : 'Recent Games';
 
+  const handleDownloadImage = async () => {
+    if (!shareWrapperRef.current || isCapturing) return;
+    
+    try {
+      setIsCapturing(true);
+      
+      const svgElement = svgRef.current;
+      const svgWidth = parseInt(svgElement.getAttribute('width'));
+      const svgHeight = parseInt(svgElement.getAttribute('height'));
+      
+      const bubbleCanvas = document.createElement('canvas');
+      bubbleCanvas.width = svgWidth;
+      bubbleCanvas.height = svgHeight;
+      const ctx = bubbleCanvas.getContext('2d');
+      
+      const groups = svgElement.querySelectorAll('g[transform]');
+      const bubbleData = [];
+      
+      groups.forEach((group) => {
+        const transform = group.getAttribute('transform');
+        const match = transform.match(/translate\(([^,]+),([^)]+)\)/);
+        if (!match) return;
+        
+        const groupX = parseFloat(match[1]);
+        const groupY = parseFloat(match[2]);
+        
+        const circle = group.querySelector('circle');
+        if (!circle) return;
+        
+        const r = parseFloat(circle.getAttribute('r'));
+        const fill = circle.getAttribute('fill');
+        const opacity = parseFloat(circle.getAttribute('opacity') || 1);
+        
+        const image = group.querySelector('image');
+        if (!image) return;
+        
+        const href = image.getAttribute('href') || image.getAttribute('xlink:href');
+        const imgX = parseFloat(image.getAttribute('x'));
+        const imgY = parseFloat(image.getAttribute('y'));
+        const imgWidth = parseFloat(image.getAttribute('width'));
+        const imgHeight = parseFloat(image.getAttribute('height'));
+        
+        bubbleData.push({
+          x: groupX,
+          y: groupY,
+          r,
+          fill,
+          opacity,
+          href,
+          imgX,
+          imgY,
+          imgWidth,
+          imgHeight
+        });
+      });
+      
+      const imagePromises = bubbleData.map(async (bubble) => {
+        if (!bubble.href) return null;
+        
+        try {
+          const response = await fetch(bubble.href);
+          const blob = await response.blob();
+          const img = new Image();
+          
+          await new Promise((resolve, reject) => {
+            img.onload = resolve;
+            img.onerror = reject;
+            img.src = URL.createObjectURL(blob);
+          });
+          
+          return { ...bubble, img };
+        } catch (e) {
+          console.error('Failed to load image:', bubble.href, e);
+          return { ...bubble, img: null };
+        }
+      });
+      
+      const loadedBubbles = await Promise.all(imagePromises);
+      
+      loadedBubbles.forEach((bubble) => {
+        ctx.globalAlpha = bubble.opacity;
+        ctx.fillStyle = bubble.fill;
+        ctx.beginPath();
+        ctx.arc(bubble.x, bubble.y, bubble.r, 0, 2 * Math.PI);
+        ctx.fill();
+        
+        ctx.globalAlpha = 1;
+        ctx.strokeStyle = '#1f2937';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        
+        if (bubble.img) {
+          ctx.save();
+          
+          ctx.beginPath();
+          ctx.arc(bubble.x, bubble.y, bubble.r * 0.9, 0, 2 * Math.PI);
+          ctx.clip();
+          
+          const absoluteX = bubble.x + bubble.imgX;
+          const absoluteY = bubble.y + bubble.imgY;
+          ctx.drawImage(bubble.img, absoluteX, absoluteY, bubble.imgWidth, bubble.imgHeight);
+          
+          ctx.restore();
+        }
+      });
+      
+      bubbleCanvas.style.width = svgElement.style.width || '100%';
+      bubbleCanvas.style.height = svgElement.style.height || 'auto';
+      bubbleCanvas.className = svgElement.className;
+      
+      const originalSvgParent = svgElement.parentNode;
+      svgElement.style.display = 'none';
+      originalSvgParent.insertBefore(bubbleCanvas, svgElement);
+      
+      const finalCanvas = await html2canvas(shareWrapperRef.current, {
+        backgroundColor: null,
+        scale: 2,
+        logging: false,
+        useCORS: true,
+        allowTaint: true,
+        ignoreElements: (element) => {
+          if (element.classList?.contains('capture-exclude')) return true;
+          if (element.classList?.contains('absolute') && element.classList?.contains('pointer-events-none')) return true;
+          return false;
+        },
+      });
+      
+      bubbleCanvas.remove();
+      svgElement.style.display = 'block';
+      
+      const dataURL = finalCanvas.toDataURL('image/png');
+      const a = document.createElement('a');
+      a.href = dataURL;
+      a.download = `league-champion-${viewMode === 'mastery' ? 'mastery' : 'recent'}.png`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    } catch (error) {
+      const svgElement = svgRef.current;
+      if (svgElement) {
+        svgElement.style.display = 'block';
+      }
+      
+      alert('Failed to save image. Please try again.');
+    } finally {
+      setIsCapturing(false);
+    }
+  };
+
+
   return (
-    <div className="bg-gradient-to-br from-purple-900/40 via-blue-900/40 to-indigo-900/40 rounded-xl p-6 shadow-xl border border-purple-500/30">
+    <div
+      ref={shareWrapperRef}
+      className="rounded-xl p-6 shadow-xl border"
+      style={{
+        background: 'linear-gradient(135deg, rgba(88, 28, 135, 0.4) 0%, rgba(30, 58, 138, 0.4) 50%, rgba(49, 46, 129, 0.4) 100%)',
+        borderColor: 'rgba(168, 85, 247, 0.3)'
+      }}
+      data-capture-root="true"
+    >
       {/* Header with Stats */}
       <div className="mb-6">
-        <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center justify-between mb-3 capture-solid-bg">
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-purple-500/20 rounded-lg">
-              <Crown className="text-purple-400" size={24} />
+            <div className="p-2 rounded-lg" style={{ backgroundColor: 'rgba(168, 85, 247, 0.2)' }}>
+              <Crown style={{ color: 'rgb(192, 132, 252)' }} size={24} />
             </div>
             <div>
-              <h3 className="text-2xl font-bold text-white">
+              <h3 className="text-2xl font-bold" style={{ color: 'rgb(255, 255, 255)' }}>
                 {viewMode === 'mastery' ? 'Champion Mastery' : 'Recent Matches'}
               </h3>
-              <p className="text-gray-400 text-sm">
+              <p className="text-sm" style={{ color: 'rgb(156, 163, 175)' }}>
                 {viewMode === 'mastery' ? 'Your most played champions' : 'Champions from your recent games'}
               </p>
             </div>
@@ -226,11 +373,14 @@ export default function MasteryBubbleChart({ mastery, getChampionIconSrc, allMat
           {canToggle && (
             <button
               onClick={() => setViewMode(viewMode === 'mastery' ? 'recent' : 'mastery')}
-              className="flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/20 rounded-lg border border-white/20 transition"
+              className="flex items-center gap-2 px-4 py-2 rounded-lg transition"
+              style={{ backgroundColor: 'rgba(255, 255, 255, 0.1)', border: '1px solid rgba(255, 255, 255, 0.2)' }}
+              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.2)'}
+              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.1)'}
               title={`Switch to ${viewMode === 'mastery' ? 'recent matches' : 'mastery'}`}
             >
-              {viewMode === 'mastery' ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
-              <span className="text-sm text-white font-medium hidden sm:inline">
+              {viewMode === 'mastery' ? <ChevronRight size={18} style={{ color: 'rgb(255, 255, 255)' }} /> : <ChevronLeft size={18} style={{ color: 'rgb(255, 255, 255)' }} />}
+              <span className="text-sm font-medium hidden sm:inline" style={{ color: 'rgb(255, 255, 255)' }}>
                 {viewMode === 'mastery' ? 'Recent' : 'Mastery'}
               </span>
             </button>
@@ -239,54 +389,55 @@ export default function MasteryBubbleChart({ mastery, getChampionIconSrc, allMat
 
         {/* Stats Grid */}
         <div className="grid grid-cols-2 gap-3 mb-4">
-          <div className="bg-white/10 backdrop-blur-sm rounded-lg p-3 border border-white/20">
+          <div className="rounded-lg p-3" style={{ backgroundColor: 'rgba(255, 255, 255, 0.1)', border: '1px solid rgba(255, 255, 255, 0.2)' }}>
             <div className="flex items-center gap-2 mb-1">
-              <Trophy size={16} className="text-yellow-400" />
-              <span className="text-gray-400 text-xs font-medium">{statLabel}</span>
+              <Trophy size={16} style={{ color: 'rgb(250, 204, 21)' }} />
+              <span className="text-xs font-medium" style={{ color: 'rgb(156, 163, 175)' }}>{statLabel}</span>
             </div>
-            <div className="text-white font-bold text-lg">
+            <div className="font-bold text-lg" style={{ color: 'rgb(255, 255, 255)' }}>
               {viewMode === 'mastery' ? totalPoints.toLocaleString() : totalChampions}
             </div>
           </div>
-          <div className="bg-white/10 backdrop-blur-sm rounded-lg p-3 border border-white/20">
+          <div className="rounded-lg p-3" style={{ backgroundColor: 'rgba(255, 255, 255, 0.1)', border: '1px solid rgba(255, 255, 255, 0.2)' }}>
             <div className="flex items-center gap-2 mb-1">
-              <Star size={16} className="text-blue-400" />
-              <span className="text-gray-400 text-xs font-medium">Champions</span>
+              <Star size={16} style={{ color: 'rgb(96, 165, 250)' }} />
+              <span className="text-xs font-medium" style={{ color: 'rgb(156, 163, 175)' }}>Champions</span>
             </div>
-            <div className="text-white font-bold text-lg">{totalChampions}</div>
+            <div className="font-bold text-lg" style={{ color: 'rgb(255, 255, 255)' }}>{totalChampions}</div>
           </div>
         </div>
 
         {/* Top 3 Champions */}
         {top3.length > 0 && (
-          <div className="bg-white/5 rounded-lg p-3 border border-white/10">
-            <div className="text-xs font-semibold text-gray-400 mb-2">Top 3 Champions</div>
+          <div className="rounded-lg p-3" style={{ backgroundColor: 'rgba(255, 255, 255, 0.05)', border: '1px solid rgba(255, 255, 255, 0.1)' }}>
+            <div className="text-xs font-semibold mb-2" style={{ color: 'rgb(156, 163, 175)' }}>Top 3 Champions</div>
             <div className="flex gap-2">
               {top3.map((champ, idx) => (
-                <div key={champ.championId} className="flex-1 bg-white/10 rounded-lg p-2 text-center border border-white/20">
+                <div key={champ.championId} className="flex-1 rounded-lg p-2 text-center" style={{ backgroundColor: 'rgba(255, 255, 255, 0.1)', border: '1px solid rgba(255, 255, 255, 0.2)' }}>
                   <div className="flex items-center justify-center gap-1 mb-1">
-                    {idx === 0 && <Crown size={12} className="text-yellow-400" />}
-                    {idx === 1 && <Trophy size={12} className="text-gray-300" />}
-                    {idx === 2 && <Star size={12} className="text-orange-400" />}
-                    <span className="text-white text-xs font-bold">#{idx + 1}</span>
+                    {idx === 0 && <Crown size={12} style={{ color: 'rgb(250, 204, 21)' }} />}
+                    {idx === 1 && <Trophy size={12} style={{ color: 'rgb(209, 213, 219)' }} />}
+                    {idx === 2 && <Star size={12} style={{ color: 'rgb(251, 146, 60)' }} />}
+                    <span className="text-xs font-bold" style={{ color: 'rgb(255, 255, 255)' }}>#{idx + 1}</span>
                   </div>
                   <img
                     src={getChampionIconSrc(champ.championId)}
                     alt="Champion"
-                    className="w-10 h-10 rounded-full mx-auto mb-1 border-2 border-white/30"
+                    className="w-10 h-10 rounded-full mx-auto mb-1"
+                    style={{ border: '2px solid rgba(255, 255, 255, 0.3)' }}
                     onError={(e) => { e.currentTarget.style.display = 'none'; }}
                   />
-                  <div className="text-xs text-purple-300 font-semibold">
+                  <div className="text-xs font-semibold" style={{ color: 'rgb(216, 180, 254)' }}>
                     {viewMode === 'mastery' 
                       ? (champ.championPoints || 0).toLocaleString() 
                       : `${champ.games || 0} games`
                     }
                   </div>
                   {champ.championLevel && (
-                    <div className="text-xs text-gray-400">M{champ.championLevel}</div>
+                    <div className="text-xs" style={{ color: 'rgb(156, 163, 175)' }}>M{champ.championLevel}</div>
                   )}
                   {viewMode === 'recent' && champ.games && (
-                    <div className="text-xs text-gray-400">{champ.games} game{champ.games !== 1 ? 's' : ''}</div>
+                    <div className="text-xs" style={{ color: 'rgb(156, 163, 175)' }}>{champ.games} game{champ.games !== 1 ? 's' : ''}</div>
                   )}
                 </div>
               ))}
@@ -296,14 +447,20 @@ export default function MasteryBubbleChart({ mastery, getChampionIconSrc, allMat
       </div>
 
       {/* Bubble Chart */}
-      <div ref={containerRef} className="w-full relative bg-gray-900/30 rounded-lg p-4 border border-white/10" style={{ minHeight: '400px' }}>
+      <div
+        ref={containerRef}
+        className="w-full relative rounded-lg p-4"
+        style={{ minHeight: '400px', backgroundColor: 'rgba(17, 24, 39, 0.3)', border: '1px solid rgba(255, 255, 255, 0.1)' }}
+      >
         <svg ref={svgRef} className="drop-shadow-lg w-full h-auto" style={{ display: 'block' }}></svg>
         
         {/* Tooltip */}
         {tooltip.visible && tooltip.data && (
           <div
-            className="absolute pointer-events-none z-50 bg-gray-900 border border-purple-500/50 rounded-lg px-4 py-3 shadow-xl"
+            className="absolute pointer-events-none z-50 rounded-lg px-4 py-3 shadow-xl border"
             style={{
+              backgroundColor: '#111827',
+              borderColor: 'rgba(168, 85, 247, 0.5)',
               left: `${tooltip.x + 15}px`,
               top: `${tooltip.y - 10}px`,
               transform: 'translate(0, -100%)'
@@ -311,22 +468,22 @@ export default function MasteryBubbleChart({ mastery, getChampionIconSrc, allMat
           >
             {viewMode === 'mastery' && tooltip.data.championLevel != null && (
               <>
-                <div className="text-sm font-semibold text-purple-300">
+                <div className="text-sm font-semibold" style={{ color: 'rgb(216, 180, 254)' }}>
                   {(tooltip.data.championPoints || 0).toLocaleString()} Points
                 </div>
-                <div className="text-xs text-blue-300">
+                <div className="text-xs" style={{ color: 'rgb(147, 197, 253)' }}>
                   Mastery Level {tooltip.data.championLevel}
                 </div>
                 {tooltip.data.chestGranted && (
-                  <div className="text-xs text-yellow-400 mt-1 flex items-center gap-1">
-                    <Trophy size={12} />
+                  <div className="text-xs mt-1 flex items-center gap-1" style={{ color: 'rgb(250, 204, 21)' }}>
+                    <Trophy size={12} style={{ color: 'rgb(250, 204, 21)' }} />
                     Chest Earned
                   </div>
                 )}
               </>
             )}
             {(viewMode === 'recent' || (!tooltip.data.championLevel && tooltip.data.games)) && (
-              <div className="text-sm text-gray-300">
+              <div className="text-sm" style={{ color: 'rgb(209, 213, 219)' }}>
                 Played {tooltip.data.games || 0} game{tooltip.data.games !== 1 ? 's' : ''}
               </div>
             )}
@@ -335,23 +492,28 @@ export default function MasteryBubbleChart({ mastery, getChampionIconSrc, allMat
       </div>
 
       {/* Share Button */}
-      <button
-        onClick={() => {
-          if (viewMode === 'mastery') {
-            const topChampText = top3.map((c, i) => `#${i+1}: ${(c.championPoints || 0).toLocaleString()} pts`).join(' • ');
-            const text = `My League Champion Mastery 🎮\n\n${totalPoints.toLocaleString()} total mastery points across ${totalChampions} champions!\n\nTop 3: ${topChampText}\n\nGet your Rift Rewind at https://rift-recap.vercel.app`;
-            window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`);
-          } else {
-            const topChampText = top3.map((c, i) => `#${i+1}: ${c.games || 0} games`).join(' • ');
-            const text = `My Recent League Champions 🎮\n\nPlayed ${totalChampions} different champions in recent games!\n\nTop 3: ${topChampText}\n\nGet your Rift Rewind at https://rift-recap.vercel.app`;
-            window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`);
-          }
-        }}
-        className="w-full mt-4 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white font-bold py-3 px-6 rounded-lg transition-all transform hover:scale-105 flex items-center justify-center gap-2 shadow-lg"
-      >
-        <Twitter size={18} />
-        Share Your Champion {viewMode === 'mastery' ? 'Mastery' : 'Recent Matches'}
-      </button>
+      <div className="mt-4 capture-exclude">
+        <button
+          onClick={handleDownloadImage}
+          disabled={isCapturing}
+          className="w-full font-bold py-3 px-6 rounded-lg transition-all transform hover:scale-105 flex items-center justify-center gap-2 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+          style={{ background: 'linear-gradient(90deg, rgb(147, 51, 234) 0%, rgb(59, 130, 246) 100%)', color: 'rgb(255, 255, 255)' }}
+          onMouseEnter={(e) => !isCapturing && (e.currentTarget.style.background = 'linear-gradient(90deg, rgb(126, 34, 206) 0%, rgb(37, 99, 235) 100%)')}
+          onMouseLeave={(e) => !isCapturing && (e.currentTarget.style.background = 'linear-gradient(90deg, rgb(147, 51, 234) 0%, rgb(59, 130, 246) 100%)')}
+        >
+          {isCapturing ? (
+            <>
+              <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+              <span>Saving...</span>
+            </>
+          ) : (
+            <>
+              <Download size={18} style={{ color: 'rgb(255, 255, 255)' }} />
+              <span>Download Image</span>
+            </>
+          )}
+        </button>
+      </div>
     </div>
   );
 }

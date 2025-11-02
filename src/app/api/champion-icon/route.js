@@ -28,6 +28,7 @@ export async function GET(request) {
               // Cache on the edge; safe to revalidate occasionally
               'Cache-Control': 'public, max-age=3600, s-maxage=86400, stale-while-revalidate=604800',
               'X-Upstream-URL': url,
+              'Access-Control-Allow-Origin': '*',
             },
           });
         }
